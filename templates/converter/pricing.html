@@ -1,0 +1,945 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Credits & Pricing — Video Converter</title>
+<link rel="icon" type="image/png" href="{% static 'converter/converter-logo.png' %}">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg:           #080808;
+  --surface:      #0f0f0f;
+  --surface2:     #141414;
+  --surface3:     #1a1a1a;
+  --border:       #2a2a2a;
+  --border-mid:   #333333;
+  --border-bright:#484848;
+  --accent:       #d4ff00;
+  --accent-dim:   #a8cc00;
+  --accent-glow:  rgba(212,255,0,0.15);
+  --accent-soft:  rgba(212,255,0,0.08);
+  --text:         #f0f0f0;
+  --text-mid:     #c8c8c8;
+  --muted:        #888888;
+  --success:      #00e676;
+  --success-soft: rgba(0,230,118,0.08);
+  --mono: 'JetBrains Mono', monospace;
+  --sans: 'Syne', sans-serif;
+}
+
+html, body {
+  min-height: 100%;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--sans);
+  overflow-x: hidden;
+}
+
+/* Scanline */
+body::before {
+  content: '';
+  position: fixed; inset: 0;
+  background: repeating-linear-gradient(
+    0deg, transparent, transparent 3px,
+    rgba(255,255,255,0.006) 3px, rgba(255,255,255,0.006) 4px
+  );
+  pointer-events: none; z-index: 9999;
+}
+
+/* Glow orbs */
+.orb {
+  position: fixed;
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 0;
+  filter: blur(80px);
+}
+.orb-1 {
+  width: 600px; height: 600px;
+  top: -200px; right: -150px;
+  background: radial-gradient(circle, rgba(212,255,0,0.05) 0%, transparent 70%);
+}
+.orb-2 {
+  width: 400px; height: 400px;
+  bottom: 0; left: -100px;
+  background: radial-gradient(circle, rgba(212,255,0,0.03) 0%, transparent 70%);
+}
+
+.page {
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 0 28px;
+  position: relative;
+  z-index: 1;
+}
+
+/* ── HEADER ── */
+header {
+  padding: 32px 0 28px;
+  border-bottom: 1px solid var(--border-mid);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+.logo-wrap { display: flex; align-items: center; gap: 14px; text-decoration: none; }
+.logo-img { height: 40px; width: auto; flex-shrink: 0; }
+.logo-text {
+  font-family: var(--sans); font-weight: 800;
+  font-size: clamp(16px, 3vw, 28px);
+  letter-spacing: -0.04em; line-height: 1;
+  color: var(--text); white-space: nowrap;
+}
+.logo-text em { color: var(--accent); font-style: normal; }
+
+.nav-links { display: flex; align-items: center; gap: 6px; }
+.nav-link {
+  font-family: var(--mono); font-size: 10px; font-weight: 600;
+  letter-spacing: 0.1em; text-transform: uppercase;
+  color: var(--muted); text-decoration: none;
+  padding: 7px 14px;
+  border: 1px solid transparent;
+  transition: color 0.15s, border-color 0.15s;
+}
+.nav-link:hover { color: var(--text-mid); border-color: var(--border-mid); }
+.nav-link.active { color: var(--accent); border-color: rgba(212,255,0,0.3); background: var(--accent-soft); }
+
+/* ── HERO ── */
+.hero {
+  text-align: center;
+  padding: 72px 0 56px;
+}
+.hero-eyebrow {
+  font-family: var(--mono); font-size: 10px; font-weight: 700;
+  letter-spacing: 0.25em; text-transform: uppercase;
+  color: var(--accent); margin-bottom: 20px;
+  display: inline-flex; align-items: center; gap: 8px;
+}
+.hero-eyebrow::before, .hero-eyebrow::after {
+  content: ''; display: block;
+  width: 32px; height: 1px; background: var(--accent); opacity: 0.5;
+}
+.hero-title {
+  font-family: var(--sans); font-weight: 800;
+  font-size: clamp(32px, 6vw, 64px);
+  letter-spacing: -0.04em; line-height: 1.05;
+  margin-bottom: 20px;
+}
+.hero-title span { color: var(--accent); }
+.hero-sub {
+  font-family: var(--mono); font-size: 13px;
+  color: var(--text-mid); max-width: 520px;
+  margin: 0 auto 12px;
+  line-height: 1.7;
+}
+.hero-note {
+  font-family: var(--mono); font-size: 10px;
+  color: var(--muted); letter-spacing: 0.05em;
+}
+
+/* ── FREE TIER BANNER ── */
+.free-banner {
+  background: var(--success-soft);
+  border: 1px solid rgba(0,230,118,0.2);
+  border-left: 3px solid var(--success);
+  padding: 16px 22px;
+  margin-bottom: 48px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.free-badge {
+  font-family: var(--mono); font-size: 9px; font-weight: 700;
+  letter-spacing: 0.15em; text-transform: uppercase;
+  background: var(--success); color: #000;
+  padding: 4px 10px; flex-shrink: 0;
+}
+.free-desc { font-family: var(--mono); font-size: 11px; color: var(--text-mid); flex: 1; }
+.free-desc strong { color: var(--success); }
+.btn-free {
+  font-family: var(--mono); font-size: 10px; font-weight: 700;
+  letter-spacing: 0.1em; text-transform: uppercase;
+  padding: 8px 18px;
+  border: 1px solid rgba(0,230,118,0.4);
+  color: var(--success); background: transparent;
+  cursor: pointer; text-decoration: none;
+  transition: background 0.15s;
+  flex-shrink: 0;
+}
+.btn-free:hover { background: var(--success-soft); }
+
+/* ── CREDIT COST TABLE ── */
+.cost-section {
+  margin-bottom: 56px;
+}
+.section-label {
+  font-family: var(--mono); font-size: 9px; font-weight: 700;
+  letter-spacing: 0.2em; text-transform: uppercase;
+  color: var(--muted); margin-bottom: 16px;
+  display: flex; align-items: center; gap: 12px;
+}
+.section-label::after { content: ''; flex: 1; height: 1px; background: var(--border-mid); }
+
+.cost-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1px;
+  background: var(--border-mid);
+  border: 1px solid var(--border-mid);
+}
+.cost-cell {
+  background: var(--surface);
+  padding: 20px 22px;
+  position: relative;
+  overflow: hidden;
+}
+.cost-cell::before {
+  content: '';
+  position: absolute; top: 0; left: 0; right: 0;
+  height: 2px;
+  background: var(--border-mid);
+  transition: background 0.2s;
+}
+.cost-cell:hover::before { background: var(--accent); }
+.cost-range {
+  font-family: var(--mono); font-size: 10px; font-weight: 700;
+  letter-spacing: 0.1em; text-transform: uppercase;
+  color: var(--muted); margin-bottom: 10px;
+}
+.cost-credits {
+  font-family: var(--mono); font-size: 28px; font-weight: 700;
+  color: var(--accent); line-height: 1; letter-spacing: -0.02em;
+  margin-bottom: 4px;
+}
+.cost-credits span { font-size: 14px; color: var(--text-mid); font-weight: 400; }
+.cost-note { font-family: var(--mono); font-size: 10px; color: var(--muted); }
+
+/* ── PRICING CARDS ── */
+.plans-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  margin-bottom: 56px;
+}
+
+.plan-card {
+  background: var(--surface);
+  border: 1px solid var(--border-mid);
+  padding: 28px 24px;
+  position: relative;
+  overflow: hidden;
+  transition: border-color 0.2s, transform 0.2s;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+}
+.plan-card:hover {
+  border-color: var(--border-bright);
+  transform: translateY(-2px);
+}
+.plan-card.featured {
+  border-color: var(--accent);
+  background: var(--surface);
+}
+.plan-card.featured::before {
+  content: '';
+  position: absolute; inset: 0;
+  background: linear-gradient(135deg, var(--accent-soft) 0%, transparent 50%);
+  pointer-events: none;
+}
+
+/* Animated corner accent on featured */
+.plan-card.featured::after {
+  content: '';
+  position: absolute;
+  top: 0; right: 0;
+  width: 60px; height: 60px;
+  background: linear-gradient(225deg, var(--accent) 0%, transparent 60%);
+  opacity: 0.15;
+}
+
+.plan-tag {
+  position: absolute;
+  top: 16px; right: 16px;
+  font-family: var(--mono); font-size: 8px; font-weight: 700;
+  letter-spacing: 0.15em; text-transform: uppercase;
+  background: var(--accent); color: #000;
+  padding: 3px 8px;
+}
+
+.plan-name {
+  font-family: var(--mono); font-size: 9px; font-weight: 700;
+  letter-spacing: 0.2em; text-transform: uppercase;
+  color: var(--muted); margin-bottom: 16px;
+}
+.plan-card.featured .plan-name { color: var(--accent); }
+
+.plan-price {
+  font-family: var(--sans); font-weight: 800;
+  font-size: 40px; letter-spacing: -0.04em;
+  line-height: 1; color: var(--text);
+  margin-bottom: 4px;
+}
+.plan-price sup {
+  font-size: 18px; font-weight: 600;
+  vertical-align: super; margin-right: 2px;
+  color: var(--text-mid);
+}
+.plan-currency {
+  font-family: var(--mono); font-size: 10px;
+  color: var(--muted); margin-bottom: 20px;
+  letter-spacing: 0.05em;
+}
+
+.plan-credits-main {
+  font-family: var(--mono); font-size: 32px; font-weight: 700;
+  color: var(--accent); line-height: 1;
+  letter-spacing: -0.02em; margin-bottom: 4px;
+}
+.plan-credits-label {
+  font-family: var(--mono); font-size: 10px;
+  color: var(--muted); margin-bottom: 24px;
+  letter-spacing: 0.05em;
+}
+
+.plan-divider { height: 1px; background: var(--border-mid); margin-bottom: 20px; }
+
+.plan-features { display: flex; flex-direction: column; gap: 9px; margin-bottom: 28px; flex: 1; }
+.plan-feature {
+  display: flex; align-items: flex-start; gap: 10px;
+  font-family: var(--mono); font-size: 11px;
+  color: var(--text-mid); line-height: 1.4;
+}
+.feat-dot {
+  width: 4px; height: 4px; border-radius: 50%;
+  background: var(--accent); flex-shrink: 0;
+  margin-top: 5px;
+}
+.plan-card:not(.featured) .feat-dot { background: var(--muted); }
+
+.plan-value {
+  font-family: var(--mono); font-size: 9px;
+  color: var(--muted); margin-bottom: 16px;
+  padding: 8px 12px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  letter-spacing: 0.04em;
+}
+
+
+.plan-value strong { color: var(--accent); }
+
+.btn-plan {
+  font-family: var(--mono); font-size: 11px; font-weight: 700;
+  letter-spacing: 0.1em; text-transform: uppercase;
+  padding: 13px 20px;
+  border: 1px solid var(--border-bright);
+  color: var(--text-mid); background: transparent;
+  cursor: pointer; width: 100%;
+  transition: all 0.15s;
+  text-align: center;
+  text-decoration: none;
+  display: block;
+}
+.btn-plan:hover { border-color: var(--text); color: var(--text); }
+.btn-plan.primary {
+  background: var(--accent); border-color: var(--accent);
+  color: #000;
+}
+.btn-plan.primary:hover { background: var(--accent-dim); border-color: var(--accent-dim); }
+
+/* ── HOW IT WORKS ── */
+.how-section { margin-bottom: 56px; }
+.steps-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1px;
+  background: var(--border-mid);
+}
+.step {
+  background: var(--surface);
+  padding: 24px 20px;
+}
+.step-num {
+  font-family: var(--mono); font-size: 9px; font-weight: 700;
+  color: #000; background: var(--muted);
+  width: 20px; height: 20px;
+  display: flex; align-items: center; justify-content: center;
+  margin-bottom: 14px;
+}
+.step-title {
+  font-family: var(--sans); font-weight: 700;
+  font-size: 14px; letter-spacing: -0.02em;
+  color: var(--text); margin-bottom: 6px;
+}
+.step-desc {
+  font-family: var(--mono); font-size: 10px;
+  color: var(--muted); line-height: 1.6;
+}
+
+/* ── FAQ ── */
+.faq-section { margin-bottom: 64px; }
+.faq-list { display: flex; flex-direction: column; gap: 1px; background: var(--border-mid); }
+.faq-item { background: var(--surface); overflow: hidden; }
+.faq-q {
+  font-family: var(--mono); font-size: 11px; font-weight: 600;
+  color: var(--text-mid); padding: 16px 20px;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: space-between;
+  transition: color 0.15s, background 0.15s;
+  user-select: none;
+  letter-spacing: 0.02em;
+}
+.faq-q:hover { color: var(--text); background: var(--surface2); }
+.faq-q.open { color: var(--accent); }
+.faq-arrow {
+  font-size: 12px; transition: transform 0.2s;
+  flex-shrink: 0; margin-left: 16px;
+}
+.faq-q.open .faq-arrow { transform: rotate(180deg); }
+.faq-a {
+  font-family: var(--mono); font-size: 11px;
+  color: var(--muted); padding: 0 20px;
+  max-height: 0; overflow: hidden;
+  transition: max-height 0.3s ease, padding 0.3s ease;
+  line-height: 1.7;
+}
+.faq-a.open { max-height: 200px; padding: 0 20px 16px; }
+
+/* ── FOOTER ── */
+footer {
+  padding: 24px 0;
+  border-top: 1px solid var(--border-mid);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-family: var(--mono); font-size: 9px;
+  color: var(--muted); letter-spacing: 0.08em;
+  flex-wrap: wrap; gap: 8px;
+}
+.footer-left { display: flex; align-items: center; gap: 10px; }
+.footer-dot { width: 4px; height: 4px; border-radius: 50%; background: var(--border-bright); }
+
+/* ── MODAL ── */
+.modal-overlay {
+  display: none;
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.8);
+  z-index: 1000;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+.modal-overlay.open { display: flex; }
+.modal {
+  background: var(--surface);
+  border: 1px solid var(--border-bright);
+  max-width: 480px; width: 100%;
+  padding: 32px 28px;
+  position: relative;
+  animation: modalIn 0.2s ease;
+}
+@keyframes modalIn { from { opacity:0; transform:translateY(12px); } to { opacity:1; transform:none; } }
+.modal-close {
+  position: absolute; top: 16px; right: 16px;
+  background: none; border: none;
+  color: var(--muted); cursor: pointer;
+  font-size: 18px; line-height: 1;
+  padding: 4px 8px;
+  transition: color 0.1s;
+}
+.modal-close:hover { color: var(--text); }
+.modal-title {
+  font-family: var(--sans); font-weight: 800;
+  font-size: 22px; letter-spacing: -0.03em;
+  margin-bottom: 6px;
+}
+.modal-sub {
+  font-family: var(--mono); font-size: 10px;
+  color: var(--muted); margin-bottom: 24px;
+  letter-spacing: 0.04em;
+}
+.modal-package {
+  background: var(--surface2);
+  border: 1px solid var(--border-mid);
+  border-left: 3px solid var(--accent);
+  padding: 14px 18px;
+  margin-bottom: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.modal-pkg-name { font-family: var(--mono); font-size: 11px; font-weight: 600; color: var(--text); }
+.modal-pkg-credits { font-family: var(--mono); font-size: 11px; color: var(--muted); }
+.modal-pkg-price { font-family: var(--sans); font-size: 20px; font-weight: 800; color: var(--accent); }
+
+.modal-methods { display: flex; flex-direction: column; gap: 8px; margin-bottom: 20px; }
+.pay-method {
+  display: flex; align-items: center; gap: 14px;
+  padding: 14px 16px;
+  border: 1px solid var(--border-mid);
+  background: var(--bg);
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+  position: relative;
+}
+.pay-method:hover { border-color: var(--border-bright); background: var(--surface2); }
+.pay-method.selected { border-color: var(--accent); background: var(--accent-soft); }
+.pay-icon { font-size: 22px; flex-shrink: 0; }
+.pay-info { flex: 1; }
+.pay-name { font-family: var(--mono); font-size: 11px; font-weight: 600; color: var(--text); margin-bottom: 2px; }
+.pay-desc { font-family: var(--mono); font-size: 10px; color: var(--muted); }
+.pay-check {
+  width: 16px; height: 16px;
+  border: 1px solid var(--border-bright);
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 9px; color: transparent;
+  transition: all 0.15s;
+}
+.pay-method.selected .pay-check {
+  background: var(--accent); border-color: var(--accent);
+  color: #000;
+}
+
+.modal-note {
+  font-family: var(--mono); font-size: 10px;
+  color: var(--muted); margin-bottom: 20px;
+  line-height: 1.6;
+}
+
+.btn-checkout {
+  font-family: var(--mono); font-size: 11px; font-weight: 700;
+  letter-spacing: 0.1em; text-transform: uppercase;
+  padding: 14px 20px;
+  background: var(--accent); border: 1px solid var(--accent);
+  color: #000; cursor: pointer; width: 100%;
+  transition: background 0.15s;
+}
+.btn-checkout:hover { background: var(--accent-dim); }
+.btn-checkout:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* ── ANIMATIONS ── */
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.animate { animation: fadeUp 0.5s ease both; }
+.delay-1 { animation-delay: 0.1s; }
+.delay-2 { animation-delay: 0.2s; }
+.delay-3 { animation-delay: 0.3s; }
+.delay-4 { animation-delay: 0.4s; }
+
+/* ── RESPONSIVE ── */
+@media (max-width: 768px) {
+  .page { padding: 0 18px; }
+  .plans-grid { grid-template-columns: 1fr; gap: 10px; }
+  .cost-grid { grid-template-columns: 1fr; }
+  .steps-grid { grid-template-columns: 1fr 1fr; }
+  .hero { padding: 48px 0 40px; }
+  .hero-title { font-size: clamp(28px, 8vw, 44px); }
+  .nav-links { gap: 4px; }
+  .nav-link { padding: 6px 10px; font-size: 9px; }
+}
+@media (max-width: 480px) {
+  .page { padding: 0 14px; }
+  .steps-grid { grid-template-columns: 1fr; }
+  .hero { padding: 36px 0 32px; }
+  .plan-card { padding: 22px 18px; }
+  .modal { padding: 24px 18px; }
+  .logo-img { height: 32px; }
+  .logo-text { font-size: 16px; }
+  .nav-links { display: none; }
+}
+</style>
+</head>
+<body>
+
+<div class="orb orb-1"></div>
+<div class="orb orb-2"></div>
+
+<div class="page">
+
+  <!-- ── HEADER ── -->
+  <header>
+    <a href="/" class="logo-wrap">
+      <img src="{% static 'converter/converter-logo.png' %}" alt="Logo" class="logo-img">
+      <div class="logo-text">Video <em>Converter</em></div>
+    </a>
+    <nav class="nav-links">
+      <a href="/" class="nav-link">Converter</a>
+      <a href="/pricing/" class="nav-link active">Pricing</a>
+      <a href="/analytics/" class="nav-link">Analytics</a>
+    </nav>
+  </header>
+
+  <!-- ── HERO ── -->
+  <section class="hero animate">
+    <div class="hero-eyebrow">Credits & Pricing</div>
+    <h1 class="hero-title">Pay only for what<br><span>you convert</span></h1>
+    <p class="hero-sub">No subscriptions. No monthly fees. Buy credits once, use them whenever you need — credits never expire.</p>
+    <p class="hero-note">🇵🇭 Prices in Philippine Peso · GCash & Maya accepted</p>
+  </section>
+
+  <!-- ── FREE TIER BANNER ── -->
+  <div class="free-banner animate delay-1">
+    <div class="free-badge">Free</div>
+<div class="drop-sub">
+  MKV · MP4 · AVI · MOV · WEBM · and 5 more — Free: 2GB · Paid: 4GB
+</div>
+    <a href="/" class="btn-free">Start Free →</a>
+  </div>
+
+  <!-- ── CREDIT COST ── -->
+  <section class="cost-section animate delay-1">
+    <div class="section-label">Credit usage per conversion</div>
+    <div class="cost-grid">
+      <div class="cost-cell">
+        <div class="cost-range">Free tier</div>
+        <div class="cost-credits">3 <span>/ month</span></div>
+        <div class="cost-note">Up to 2 GB per file</div>
+      </div>
+      <div class="cost-cell">
+        <div class="cost-range">Paid — any size</div>
+        <div class="cost-credits">1 <span>credit</span></div>
+        <div class="cost-note">Up to 4 GB per file</div>
+      </div>
+      <div class="cost-cell">
+        <div class="cost-range">Credits expire</div>
+        <div class="cost-credits">Never <span></span></div>
+        <div class="cost-note">Use them anytime</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── PLANS ── -->
+  <section class="animate delay-2">
+    <div class="section-label">Credit packs</div>
+    <div class="plans-grid">
+
+      <!-- Starter -->
+      <div class="plan-card" onclick="openModal('starter')">
+        <div class="plan-name">Starter</div>
+        <div class="plan-price"><sup>₱</sup>49</div>
+        <div class="plan-currency">one-time · no expiry</div>
+        <div class="plan-credits-main">20</div>
+        <div class="plan-credits-label">credits</div>
+        <div class="plan-divider"></div>
+        <div class="plan-features">
+          <div class="plan-feature"><div class="feat-dot"></div>20 small file conversions</div>
+          <div class="plan-feature"><div class="feat-dot"></div>~6 large file conversions</div>
+          <div class="plan-feature"><div class="feat-dot"></div>All 10 output formats</div>
+          <div class="plan-feature"><div class="feat-dot"></div>GPU acceleration</div>
+          <div class="plan-feature"><div class="feat-dot"></div>Credits never expire</div>
+        </div>
+        <div class="plan-value">₱2.45 <strong>per conversion</strong> avg</div>
+        <div class="btn-plan">Buy Starter →</div>
+      </div>
+
+      <!-- Standard (featured) -->
+      <div class="plan-card featured" onclick="openModal('standard')">
+        <div class="plan-tag">Best Value</div>
+        <div class="plan-name">Standard</div>
+        <div class="plan-price"><sup>₱</sup>99</div>
+        <div class="plan-currency">one-time · no expiry</div>
+        <div class="plan-credits-main">50</div>
+        <div class="plan-credits-label">credits</div>
+        <div class="plan-divider"></div>
+        <div class="plan-features">
+          <div class="plan-feature"><div class="feat-dot"></div>50 small file conversions</div>
+          <div class="plan-feature"><div class="feat-dot"></div>~16 large file conversions</div>
+          <div class="plan-feature"><div class="feat-dot"></div>All 10 output formats</div>
+          <div class="plan-feature"><div class="feat-dot"></div>GPU acceleration</div>
+          <div class="plan-feature"><div class="feat-dot"></div>Priority queue</div>
+          <div class="plan-feature"><div class="feat-dot"></div>Credits never expire</div>
+        </div>
+        <div class="plan-value">₱1.98 <strong>per conversion</strong> avg</div>
+        <div class="btn-plan primary">Buy Standard →</div>
+      </div>
+
+      <!-- Pro -->
+      <div class="plan-card" onclick="openModal('pro')">
+        <div class="plan-name">Pro</div>
+        <div class="plan-price"><sup>₱</sup>199</div>
+        <div class="plan-currency">one-time · no expiry</div>
+        <div class="plan-credits-main">120</div>
+        <div class="plan-credits-label">credits</div>
+        <div class="plan-divider"></div>
+        <div class="plan-features">
+          <div class="plan-feature"><div class="feat-dot"></div>120 small file conversions</div>
+          <div class="plan-feature"><div class="feat-dot"></div>~40 large file conversions</div>
+          <div class="plan-feature"><div class="feat-dot"></div>All 10 output formats</div>
+          <div class="plan-feature"><div class="feat-dot"></div>GPU acceleration</div>
+          <div class="plan-feature"><div class="feat-dot"></div>Priority queue</div>
+          <div class="plan-feature"><div class="feat-dot"></div>4 GB max file size</div>
+          <div class="plan-feature"><div class="feat-dot"></div>Credits never expire</div>
+        </div>
+        <div class="plan-value">₱1.66 <strong>per conversion</strong> avg</div>
+        <div class="btn-plan">Buy Pro →</div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ── HOW IT WORKS ── -->
+  <section class="how-section animate delay-3">
+    <div class="section-label">How it works</div>
+    <div class="steps-grid">
+      <div class="step">
+        <div class="step-num">1</div>
+        <div class="step-title">Choose a pack</div>
+        <div class="step-desc">Pick the credit pack that fits your needs. Pay once with GCash, Maya, or card.</div>
+      </div>
+      <div class="step">
+        <div class="step-num">2</div>
+        <div class="step-title">Get credits</div>
+        <div class="step-desc">Credits are added to your account instantly after payment confirmation.</div>
+      </div>
+      <div class="step">
+        <div class="step-num">3</div>
+        <div class="step-title">Convert</div>
+        <div class="step-desc">Upload your video and convert. Credits are deducted based on file size.</div>
+      </div>
+      <div class="step">
+        <div class="step-num">4</div>
+        <div class="step-title">Download</div>
+        <div class="step-desc">Your converted file is ready instantly. Download and delete whenever you're done.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── FAQ ── -->
+  <section class="faq-section animate delay-4">
+    <div class="section-label">Frequently asked</div>
+    <div class="faq-list">
+      <div class="faq-item">
+        <div class="faq-q" onclick="toggleFaq(this)">
+          Do credits expire?
+          <span class="faq-arrow">▾</span>
+        </div>
+        <div class="faq-a">No — credits never expire. Buy once and use them at your own pace, whether that takes a week or a year.</div>
+      </div>
+      <div class="faq-item">
+        <div class="faq-q" onclick="toggleFaq(this)">
+          What payment methods are accepted?
+          <span class="faq-arrow">▾</span>
+        </div>
+        <div class="faq-a">GCash, Maya (PayMaya), and major credit/debit cards (Visa, Mastercard). More payment options may be added in the future.</div>
+      </div>
+      <div class="faq-item">
+        <div class="faq-q" onclick="toggleFaq(this)">
+          What happens if a conversion fails?
+          <span class="faq-arrow">▾</span>
+        </div>
+        <div class="faq-a">If a conversion fails due to a server error on our end, the credits are automatically refunded to your account. You are never charged for failed conversions.</div>
+      </div>
+      <div class="faq-item">
+        <div class="faq-q" onclick="toggleFaq(this)">
+          Is there a refund policy?
+          <span class="faq-arrow">▾</span>
+        </div>
+        <div class="faq-a">If you purchased credits but haven't used any, contact us within 7 days for a full refund. Partially used packs are non-refundable.</div>
+      </div>
+      <div class="faq-item">
+        <div class="faq-q" onclick="toggleFaq(this)">
+          Are my files private?
+          <span class="faq-arrow">▾</span>
+        </div>
+        <div class="faq-a">Yes. Uploaded files are processed on our server and automatically deleted after 1 hour. We do not store, share, or access your video content.</div>
+      </div>
+      <div class="faq-item">
+        <div class="faq-q" onclick="toggleFaq(this)">
+          Can I buy more credits anytime?
+          <span class="faq-arrow">▾</span>
+        </div>
+        <div class="faq-a">Yes, you can buy any pack at any time and credits will be added to your existing balance. There's no limit on how many packs you can purchase.</div>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <div class="footer-left">
+      <span>Video Converter</span>
+      <div class="footer-dot"></div>
+      <span>Files never leave your machine</span>
+    </div>
+    <span>Powered by FFmpeg 8</span>
+  </footer>
+
+</div><!-- /page -->
+
+<!-- ── PAYMENT MODAL ── -->
+<div class="modal-overlay" id="modalOverlay" onclick="closeModalOutside(event)">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal()">✕</button>
+    <div class="modal-title" id="modalTitle">Buy Starter Pack</div>
+    <div class="modal-sub">One-time payment · Credits never expire</div>
+
+    <div class="modal-package">
+      <div>
+        <div class="modal-pkg-name" id="modalPkgName">Starter Pack</div>
+        <div class="modal-pkg-credits" id="modalPkgCredits">20 credits</div>
+      </div>
+      <div class="modal-pkg-price" id="modalPkgPrice">₱49</div>
+    </div>
+
+    <div class="modal-methods">
+      <div class="pay-method selected" onclick="selectMethod(this, 'gcash')">
+        <div class="pay-icon">💚</div>
+        <div class="pay-info">
+          <div class="pay-name">GCash</div>
+          <div class="pay-desc">Pay via GCash e-wallet · Instant</div>
+        </div>
+        <div class="pay-check">✓</div>
+      </div>
+      <div class="pay-method" onclick="selectMethod(this, 'maya')">
+        <div class="pay-icon">💜</div>
+        <div class="pay-info">
+          <div class="pay-name">Maya</div>
+          <div class="pay-desc">Pay via Maya (PayMaya) · Instant</div>
+        </div>
+        <div class="pay-check">✓</div>
+      </div>
+      <div class="pay-method" onclick="selectMethod(this, 'card')">
+        <div class="pay-icon">💳</div>
+        <div class="pay-info">
+          <div class="pay-name">Credit / Debit Card</div>
+          <div class="pay-desc">Visa · Mastercard · JCB</div>
+        </div>
+        <div class="pay-check">✓</div>
+      </div>
+    </div>
+
+    <div class="modal-note">
+      🔒 Payments are processed securely via PayMongo. We never store your payment details.
+    </div>
+
+    <button class="btn-checkout" onclick="handleCheckout()">
+      Proceed to Payment →
+    </button>
+  </div>
+</div>
+
+<script>
+const PACKAGES = {
+  starter:  { name: 'Starter Pack',  credits: '20 credits', price: '₱49',  amount: 49 },
+  standard: { name: 'Standard Pack', credits: '50 credits', price: '₱99',  amount: 99 },
+  pro:      { name: 'Pro Pack',      credits: '120 credits', price: '₱199', amount: 199 },
+};
+
+let selectedPkg = 'starter';
+let selectedMethod = 'gcash';
+
+function openModal(pkg) {
+  selectedPkg = pkg;
+  const p = PACKAGES[pkg];
+  document.getElementById('modalTitle').textContent = `Buy ${p.name}`;
+  document.getElementById('modalPkgName').textContent = p.name;
+  document.getElementById('modalPkgCredits').textContent = p.credits;
+  document.getElementById('modalPkgPrice').textContent = p.price;
+  document.getElementById('modalOverlay').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeModal() {
+  document.getElementById('modalOverlay').classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+function closeModalOutside(e) {
+  if (e.target === document.getElementById('modalOverlay')) closeModal();
+}
+
+function selectMethod(el, method) {
+  document.querySelectorAll('.pay-method').forEach(m => m.classList.remove('selected'));
+  el.classList.add('selected');
+  selectedMethod = method;
+}
+
+function handleCheckout() {
+    const btn = document.querySelector('.btn-checkout');
+    btn.disabled = true;
+    btn.textContent = 'Redirecting…';
+
+    fetch('/payment/create/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken':  getCookie('csrftoken'),
+        },
+        body: JSON.stringify({
+            package: selectedPkg,
+            method:  selectedMethod,
+        }),
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.checkout_url) {
+            window.location.href = data.checkout_url;
+        } else {
+            alert('Payment error: ' + (data.error || 'Unknown error.'));
+            btn.disabled = false;
+            btn.textContent = 'Proceed to Payment →';
+        }
+    })
+    .catch(() => {
+        alert('Network error. Please try again.');
+        btn.disabled = false;
+        btn.textContent = 'Proceed to Payment →';
+    });
+}
+
+// Add this helper to read the CSRF cookie
+function getCookie(name) {
+    const match = document.cookie.match(new RegExp('(^|;\\s*)' + name + '=([^;]*)'));
+    return match ? decodeURIComponent(match[2]) : '';
+}
+
+function toggleFaq(el) {
+  const answer = el.nextElementSibling;
+  const isOpen = answer.classList.contains('open');
+  // Close all
+  document.querySelectorAll('.faq-a').forEach(a => a.classList.remove('open'));
+  document.querySelectorAll('.faq-q').forEach(q => q.classList.remove('open'));
+  // Open this one if it was closed
+  if (!isOpen) {
+    answer.classList.add('open');
+    el.classList.add('open');
+  }
+}
+
+// Close modal on Escape key
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') closeModal();
+});
+
+// Show error if redirected back after failed payment
+window.addEventListener('DOMContentLoaded', () => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('payment') === 'failed') {
+        alert('Payment was cancelled or failed. No charges were made.');
+        // Clean up the URL
+        window.history.replaceState({}, '', '/pricing/');
+    }
+    if (params.get('payment') === 'success') {
+        alert('Payment received! Your credits will appear shortly.');
+        window.history.replaceState({}, '', '/pricing/');
+    }
+});
+function closeModal() {
+  document.getElementById('modalOverlay').classList.remove('open');
+  document.body.style.overflow = '';
+  // Reset button state
+  const btn = document.querySelector('.btn-checkout');
+  btn.disabled = false;
+  btn.textContent = 'Proceed to Payment →';
+}
+</script>
+</body>
+</html>

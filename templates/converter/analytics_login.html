@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sign In — Video Converter</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg:       #0c0c0c;
+  --surface:  #111111;
+  --surface2: #171717;
+  --surface3: #1e1e1e;
+  --border:   rgba(255,255,255,0.07);
+  --border2:  rgba(255,255,255,0.12);
+  --text:     #ffffff;
+  --muted:    #cccccc;
+  --faint:    #888888;
+  --blue:     #4f8ef7;
+  --green:    #34d399;
+  --red:      #f87171;
+  --mono:     'Geist Mono', 'Courier New', monospace;
+}
+
+html, body {
+  min-height: 100vh;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--mono);
+  -webkit-font-smoothing: antialiased;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Subtle grid background */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px);
+  background-size: 48px 48px;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* Radial glow behind the card */
+body::after {
+  content: '';
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 600px;
+  height: 600px;
+  background: radial-gradient(ellipse at center, rgba(79,142,247,0.04) 0%, transparent 70%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.card {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: 380px;
+  margin: 24px;
+  background: var(--surface);
+  border: 1px solid var(--border2);
+  border-radius: 12px;
+  padding: 36px 32px;
+  animation: fadeUp .35s ease both;
+}
+
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* Header */
+.header {
+  margin-bottom: 32px;
+}
+
+.app-name {
+  font-size: 11px;
+  color: var(--faint);
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  margin-bottom: 6px;
+}
+
+.app-name span {
+  color: var(--blue);
+}
+
+.title {
+  font-size: 20px;
+  font-weight: 300;
+  letter-spacing: -0.02em;
+  color: var(--text);
+  line-height: 1.2;
+}
+
+.subtitle {
+  font-size: 11px;
+  color: var(--faint);
+  margin-top: 6px;
+  font-weight: 300;
+}
+
+/* Form */
+.form { display: flex; flex-direction: column; gap: 14px; }
+
+.field { display: flex; flex-direction: column; gap: 5px; }
+
+.label {
+  font-size: 10px;
+  color: var(--faint);
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+.input-wrap { position: relative; }
+
+.input {
+  width: 100%;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  padding: 10px 12px;
+  font-size: 13px;
+  font-family: var(--mono);
+  font-weight: 300;
+  color: var(--text);
+  outline: none;
+  transition: border-color .15s, background .15s;
+}
+.input::placeholder { color: var(--faint); }
+.input:focus {
+  border-color: rgba(79,142,247,0.4);
+  background: var(--surface3);
+}
+
+/* Password toggle */
+.pw-toggle {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--faint);
+  padding: 2px 4px;
+  line-height: 1;
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+  transition: color .15s;
+}
+.pw-toggle:hover { color: var(--muted); }
+
+/* Error */
+.error-msg {
+  display: none;
+  font-size: 11px;
+  color: var(--red);
+  background: rgba(248,113,113,.07);
+  border: 1px solid rgba(248,113,113,.15);
+  border-radius: 6px;
+  padding: 8px 12px;
+  animation: shake .3s ease;
+}
+.error-msg.show { display: block; }
+
+@keyframes shake {
+  0%,100%{ transform: translateX(0); }
+  25%    { transform: translateX(-4px); }
+  75%    { transform: translateX(4px); }
+}
+
+/* Submit */
+.btn-submit {
+  width: 100%;
+  margin-top: 4px;
+  padding: 11px 16px;
+  background: var(--text);
+  border: none;
+  border-radius: 7px;
+  font-family: var(--mono);
+  font-size: 13px;
+  font-weight: 400;
+  color: var(--bg);
+  cursor: pointer;
+  letter-spacing: .02em;
+  transition: opacity .15s, transform .1s;
+  position: relative;
+  overflow: hidden;
+}
+.btn-submit:hover   { opacity: .9; }
+.btn-submit:active  { transform: scale(.99); }
+.btn-submit:disabled {
+  opacity: .4;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* Spinner inside button */
+.btn-spinner {
+  display: none;
+  width: 14px; height: 14px;
+  border: 1.5px solid rgba(0,0,0,0.2);
+  border-top-color: var(--bg);
+  border-radius: 50%;
+  animation: spin .5s linear infinite;
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%,-50%);
+}
+@keyframes spin { to { transform: translate(-50%,-50%) rotate(360deg); } }
+.btn-submit.loading .btn-text   { opacity: 0; }
+.btn-submit.loading .btn-spinner { display: block; }
+
+/* Divider */
+.divider {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 2px 0;
+}
+.divider::before, .divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--border);
+}
+.divider span {
+  font-size: 10px;
+  color: var(--faint);
+  letter-spacing: .06em;
+}
+
+/* Footer */
+.footer {
+  margin-top: 24px;
+  padding-top: 18px;
+  border-top: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.online {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 10px;
+  color: var(--faint);
+}
+.green-dot {
+  width: 5px; height: 5px;
+  border-radius: 50%;
+  background: var(--green);
+  animation: blink 2s ease infinite;
+}
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:.3} }
+
+.version {
+  font-size: 10px;
+  color: var(--faint);
+  opacity: .5;
+}
+
+
+</style>
+</head>
+<body>
+
+<div class="card">
+
+  <div class="header">
+    <div class="app-name">Video Converter <span>/ Analytics</span></div>
+    <div class="title">Sign in</div>
+    <div class="subtitle">Restricted — authorised personnel only</div>
+  </div>
+
+  <form class="form" id="loginForm" method="POST" action="{% url 'analytics_login' %}">
+    {% csrf_token %}
+
+    <div class="field">
+      <label class="label" for="username">Username</label>
+      <div class="input-wrap">
+        <input
+          class="input"
+          type="text"
+          id="username"
+          name="username"
+          placeholder="admin"
+          autocomplete="username"
+          autocapitalize="none"
+          value="{{ request.POST.username }}"
+          autofocus
+        >
+      </div>
+    </div>
+
+    <div class="field">
+      <label class="label" for="password">Password</label>
+      <div class="input-wrap">
+        <input
+          class="input"
+          type="password"
+          id="password"
+          name="password"
+          placeholder="••••••••"
+          autocomplete="current-password"
+          style="padding-right: 52px"
+        >
+        <button type="button" class="pw-toggle" id="pwToggle" tabindex="-1">show</button>
+      </div>
+    </div>
+
+    {% if error %}
+    <div class="error-msg show" id="errorMsg">✕ &nbsp;{{ error }}</div>
+    {% else %}
+    <div class="error-msg" id="errorMsg"></div>
+    {% endif %}
+
+    <button type="submit" class="btn-submit" id="submitBtn">
+      <span class="btn-text">Sign in →</span>
+      <span class="btn-spinner"></span>
+    </button>
+
+  </form>
+
+  <div class="footer">
+    <div class="online">
+      <span class="green-dot"></span>
+      Server online
+    </div>
+    <div class="version">v1.0.0</div>
+  </div>
+
+
+</div>
+
+<script>
+// ── PASSWORD TOGGLE ────────────────────────────────────────────────────────
+const pwInput  = document.getElementById('password');
+const pwToggle = document.getElementById('pwToggle');
+pwToggle.addEventListener('click', () => {
+  const show = pwInput.type === 'password';
+  pwInput.type         = show ? 'text' : 'password';
+  pwToggle.textContent = show ? 'hide' : 'show';
+});
+
+// ── CLIENT-SIDE VALIDATION + LOADING STATE ────────────────────────────────
+// Auth is handled entirely by Django on the backend (views.py).
+// JS only validates empty fields and shows a loading spinner.
+const form      = document.getElementById('loginForm');
+const submitBtn = document.getElementById('submitBtn');
+const errorMsg  = document.getElementById('errorMsg');
+
+form.addEventListener('submit', (e) => {
+  const username = document.getElementById('username').value.trim();
+  const password = document.getElementById('password').value;
+
+  if (!username || !password) {
+    e.preventDefault();
+    errorMsg.textContent = '✕ \u00a0Please fill in both fields.';
+    errorMsg.classList.add('show');
+    // Re-trigger shake
+    errorMsg.style.animation = 'none';
+    errorMsg.offsetHeight;
+    errorMsg.style.animation = '';
+    return;
+  }
+
+  // Show loading state while the POST is in flight
+  submitBtn.classList.add('loading');
+  submitBtn.disabled = true;
+});
+</script>
+
+</body>
+</html>

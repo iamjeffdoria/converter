@@ -1,0 +1,861 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Analytics — Video Converter</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg:       #0c0c0c;
+  --surface:  #111111;
+  --surface2: #171717;
+  --surface3: #1e1e1e;
+  --border:   rgba(255,255,255,0.07);
+  --border2:  rgba(255,255,255,0.12);
+  --text:     #ffffff;
+  --muted:    #cccccc;
+  --faint:    #888888;
+  --blue:     #4f8ef7;
+  --green:    #34d399;
+  --red:      #f87171;
+  --amber:    #fbbf24;
+  --purple:   #a78bfa;
+  --teal:     #2dd4bf;
+  --font:     'Geist', -apple-system, sans-serif;
+  --mono:     'Geist Mono', monospace;
+  --sidebar-w: 196px;
+}
+
+html, body {
+  min-height: 100vh;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font);
+  font-size: 14px;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ── LAYOUT ── */
+.shell { display: grid; grid-template-columns: var(--sidebar-w) 1fr; min-height: 100vh; }
+
+/* ── SIDEBAR ── */
+.side {
+  background: var(--surface);
+  border-right: 1px solid var(--border);
+  padding: 20px 0;
+  display: flex; flex-direction: column;
+  position: sticky; top: 0; height: 100vh; overflow-y: auto;
+  z-index: 100;
+}
+.side-logo {
+  padding: 0 16px 20px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 12px;
+}
+.side-app { font-size: 13px; font-weight: 500; color: var(--text); letter-spacing: -0.01em; }
+.side-app span { color: var(--faint); font-weight: 300; }
+
+.nav-section {
+  font-size: 10px; color: var(--faint);
+  padding: 10px 16px 4px;
+  letter-spacing: .08em; text-transform: uppercase;
+  font-family: var(--mono);
+}
+.nav-link {
+  display: flex; align-items: center; gap: 8px;
+  padding: 6px 16px; font-size: 13px; color: var(--muted);
+  cursor: pointer; transition: color .1s;
+  text-decoration: none; font-weight: 300;
+  border-left: 2px solid transparent;
+}
+.nav-link:hover { color: var(--text); }
+.nav-link.on { color: var(--text); font-weight: 400; border-left-color: var(--text); }
+.nav-sep { height: 1px; background: var(--border); margin: 10px 0; }
+
+.side-foot {
+  margin-top: auto;
+  padding: 16px 16px 0;
+  border-top: 1px solid var(--border);
+}
+.online { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--muted); margin-bottom: 4px; }
+.green-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--green); animation: blink 2s ease infinite; }
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:.3} }
+.sync-text { font-size: 11px; color: var(--faint); font-family: var(--mono); }
+
+/* ── MOBILE TOPBAR ── */
+.mobile-topbar {
+  display: none;
+  position: sticky;
+  top: 0;
+  z-index: 200;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  padding: 12px 16px;
+  align-items: center;
+  justify-content: space-between;
+}
+.mobile-logo { font-size: 13px; font-weight: 500; color: var(--text); }
+.mobile-logo span { color: var(--faint); font-weight: 300; }
+.mobile-actions { display: flex; align-items: center; gap: 8px; }
+
+.hamburger {
+  background: none; border: 1px solid var(--border2);
+  border-radius: 6px; padding: 6px 8px;
+  cursor: pointer; color: var(--muted);
+  display: flex; flex-direction: column; gap: 3px;
+}
+.hamburger span {
+  display: block; width: 16px; height: 1.5px;
+  background: currentColor; border-radius: 1px;
+  transition: all .2s;
+}
+
+/* ── MOBILE DRAWER ── */
+.drawer-overlay {
+  display: none;
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.7);
+  z-index: 300;
+  opacity: 0;
+  transition: opacity .2s;
+}
+.drawer-overlay.open { opacity: 1; }
+
+.drawer {
+  position: fixed;
+  top: 0; left: 0;
+  width: 220px; height: 100vh;
+  background: var(--surface);
+  border-right: 1px solid var(--border2);
+  z-index: 400;
+  padding: 20px 0;
+  display: flex; flex-direction: column;
+  transform: translateX(-100%);
+  transition: transform .25s ease;
+}
+.drawer.open { transform: translateX(0); }
+
+.drawer-logo {
+  padding: 0 16px 20px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 12px;
+  display: flex; align-items: center; justify-content: space-between;
+}
+.drawer-close {
+  background: none; border: none;
+  color: var(--faint); cursor: pointer;
+  font-size: 18px; line-height: 1;
+  padding: 2px 6px;
+}
+.drawer-close:hover { color: var(--text); }
+
+/* ── MAIN ── */
+.main { padding: 28px 32px 56px; overflow-y: auto; min-width: 0; }
+
+.topbar { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 32px; gap: 12px; flex-wrap: wrap; }
+.page-title { font-size: 18px; font-weight: 400; letter-spacing: -0.03em; margin-bottom: 3px; }
+.page-sub   { font-size: 12px; color: var(--muted); font-weight: 300; }
+.topbar-right { display: flex; gap: 6px; flex-wrap: wrap; }
+
+.seg-group {
+  display: flex;
+  border: 1px solid var(--border2);
+  border-radius: 8px; overflow: hidden;
+  background: var(--surface2);
+}
+.seg {
+  font-size: 12px; font-family: var(--font); font-weight: 300;
+  padding: 5px 10px; background: transparent;
+  border: none; color: var(--muted); cursor: pointer;
+  transition: color .1s, background .1s;
+}
+.seg:hover { color: var(--text); }
+.seg.on { background: var(--surface3); color: var(--text); font-weight: 400; }
+.seg + .seg { border-left: 1px solid var(--border); }
+
+.btn-logout {
+  display: flex; align-items: center; gap: 7px;
+  margin-top: 12px; padding: 7px 10px;
+  font-size: 11px; color: var(--faint);
+  text-decoration: none; font-weight: 400;
+  font-family: var(--mono);
+  border: 1px solid var(--border); border-radius: 7px;
+  background: transparent;
+  transition: color .15s, border-color .15s, background .15s;
+}
+.btn-logout:hover { color: var(--red); border-color: rgba(248,113,113,.3); background: rgba(248,113,113,.06); }
+
+.btn-refresh {
+  font-size: 12px; font-family: var(--font); font-weight: 300;
+  padding: 5px 12px; background: var(--surface2);
+  border: 1px solid var(--border2); border-radius: 8px;
+  color: var(--muted); cursor: pointer; transition: color .1s;
+  white-space: nowrap;
+}
+.btn-refresh:hover { color: var(--text); }
+
+/* ── SECTION LABEL ── */
+.sec {
+  font-size: 10px; color: var(--faint);
+  letter-spacing: .08em; text-transform: uppercase;
+  margin-bottom: 12px; margin-top: 28px;
+  font-family: var(--mono);
+}
+.sec:first-of-type { margin-top: 0; }
+
+/* ── KPI GRID ── */
+.kpi-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+.kpi {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 10px; padding: 18px; transition: border-color .15s;
+  min-width: 0;
+}
+.kpi:hover { border-color: var(--border2); }
+.kpi-label { font-size: 11px; color: var(--muted); margin-bottom: 10px; font-weight: 300; font-family: var(--mono); }
+.kpi-value { font-size: 28px; font-weight: 300; line-height: 1; letter-spacing: -0.03em; margin-bottom: 8px; word-break: break-all; }
+.kpi-delta { font-size: 11px; color: var(--muted); font-weight: 300; }
+.up { color: var(--green); }
+.dn { color: var(--red); }
+
+/* ── CHART CARDS ── */
+.row-2-1 { display: grid; grid-template-columns: 2fr 1fr; gap: 10px; }
+.row-2   { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.row-3   { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
+
+.card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 10px; padding: 18px; transition: border-color .15s;
+  min-width: 0;
+}
+.card:hover { border-color: var(--border2); }
+.card-title { font-size: 13px; font-weight: 400; letter-spacing: -0.01em; margin-bottom: 2px; }
+.card-sub   { font-size: 11px; color: var(--muted); font-weight: 300; margin-bottom: 16px; font-family: var(--mono); }
+
+/* ── CHARTS ── */
+svg.chart { width: 100%; display: block; overflow: visible; }
+text.ax { font-family: 'Geist Mono', monospace; font-size: 10px; fill: #888888; }
+line.gl { stroke: #252525; stroke-width: 1; }
+
+/* ── LEGEND ── */
+.legend-row { display: flex; gap: 16px; margin-top: 12px; flex-wrap: wrap; }
+.lr-item { display: flex; align-items: center; gap: 6px; font-size: 11px; color: var(--muted); font-weight: 300; }
+.lr-line { width: 16px; height: 1.5px; border-radius: 1px; flex-shrink: 0; }
+
+/* ── DONUT ── */
+.donut-wrap { display: flex; align-items: center; gap: 20px; flex-wrap: wrap; }
+.donut-legend { display: flex; flex-direction: column; gap: 7px; min-width: 0; }
+.leg-item { display: flex; align-items: center; gap: 7px; font-size: 11px; }
+.leg-swatch { width: 7px; height: 7px; border-radius: 2px; flex-shrink: 0; }
+.leg-name { color: var(--muted); flex: 1; font-weight: 300; }
+.leg-pct  { font-weight: 400; color: var(--text); font-family: var(--mono); font-size: 11px; }
+
+/* ── STAT BARS ── */
+.stat-list { display: flex; flex-direction: column; gap: 10px; }
+.stat-item { display: flex; align-items: center; gap: 10px; }
+.stat-name {
+  font-size: 11px; color: var(--muted); font-weight: 300;
+  width: 100px; flex-shrink: 0;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  font-family: var(--mono);
+}
+.stat-track { flex: 1; height: 2px; background: var(--surface3); border-radius: 2px; overflow: hidden; }
+.stat-fill  { height: 100%; border-radius: 2px; transition: width .5s ease; }
+.stat-num   { font-size: 11px; font-weight: 400; min-width: 24px; text-align: right; font-family: var(--mono); color: var(--text); }
+
+/* ── HEATMAP ── */
+.hm-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+.hm-grid { display: grid; grid-template-columns: 26px repeat(24, 1fr); gap: 2px; min-width: 380px; }
+.hm-label { font-size: 9px; color: var(--faint); display: flex; align-items: center; justify-content: flex-end; padding-right: 4px; font-family: var(--mono); }
+.hm-cell  { aspect-ratio: 1; border-radius: 2px; cursor: default; transition: transform .1s; }
+.hm-cell:hover { transform: scale(1.3); }
+
+/* ── GAUGE ── */
+.gauge-wrap { display: flex; flex-direction: column; align-items: center; padding: 8px 0; }
+.gauge-num  { font-size: 30px; font-weight: 300; letter-spacing: -0.03em; margin-top: 8px; }
+.gauge-lbl  { font-size: 11px; color: var(--muted); margin-top: 3px; font-family: var(--mono); font-weight: 400; }
+
+/* ── TABLE ── */
+.tbl-wrap { border-radius: 10px; overflow: hidden; border: 1px solid var(--border); overflow-x: auto; -webkit-overflow-scrolling: touch; }
+.tbl { width: 100%; border-collapse: collapse; min-width: 480px; }
+.tbl th {
+  font-size: 10px; font-weight: 400; color: var(--faint);
+  text-align: left; padding: 10px 14px;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface2);
+  font-family: var(--mono); letter-spacing: .04em; text-transform: uppercase;
+  white-space: nowrap;
+}
+.tbl td {
+  font-size: 12px; color: var(--muted); font-weight: 300;
+  padding: 10px 14px; border-bottom: 1px solid var(--border);
+  vertical-align: middle;
+}
+.tbl tr:last-child td { border-bottom: none; }
+.tbl tr:hover td { background: var(--surface2); }
+.tbl td.name { color: var(--text); font-weight: 400; max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.pill { font-size: 10px; padding: 2px 8px; border-radius: 6px; white-space: nowrap; font-family: var(--mono); font-weight: 400; }
+.pill-done { background: rgba(52,211,153,.1);  color: var(--green); }
+.pill-err  { background: rgba(248,113,113,.1); color: var(--red); }
+.pill-cxl  { background: var(--surface3);      color: var(--faint); }
+.pill-act  { background: rgba(79,142,247,.1);  color: var(--blue); }
+
+.fmt { font-size: 10px; font-weight: 500; padding: 2px 6px; border-radius: 4px; border: 1px solid var(--border2); color: var(--muted); font-family: var(--mono); }
+
+.live-indicator { display: inline-flex; align-items: center; gap: 5px; font-size: 10px; color: var(--green); font-family: var(--mono); }
+.live-dot { width: 4px; height: 4px; border-radius: 50%; background: var(--green); animation: blink 1.5s ease infinite; }
+
+/* ════════════════════════════════════════════
+   RESPONSIVE BREAKPOINTS
+   ════════════════════════════════════════════ */
+
+/* ── TABLET (≤960px) ── */
+@media (max-width: 960px) {
+  .shell { grid-template-columns: 1fr; }
+  .side  { display: none; }
+  .mobile-topbar { display: flex; }
+  .main { padding: 20px 16px 48px; }
+  .kpi-grid  { grid-template-columns: repeat(2, 1fr); }
+  .row-2-1   { grid-template-columns: 1fr; }
+  .row-2     { grid-template-columns: 1fr 1fr; }
+  .row-3     { grid-template-columns: 1fr 1fr; }
+  .page-title { font-size: 16px; }
+}
+
+/* ── MOBILE (≤600px) ── */
+@media (max-width: 600px) {
+  .main { padding: 16px 12px 48px; }
+  .kpi-grid  { grid-template-columns: repeat(2, 1fr); gap: 8px; }
+  .row-2     { grid-template-columns: 1fr; }
+  .row-3     { grid-template-columns: 1fr; }
+  .row-2-1   { grid-template-columns: 1fr; }
+  .kpi       { padding: 14px; }
+  .kpi-value { font-size: 22px; }
+  .card      { padding: 14px; }
+  .topbar    { margin-bottom: 20px; }
+  .topbar-right { width: 100%; justify-content: space-between; }
+  .seg       { padding: 5px 8px; font-size: 11px; }
+  .sec       { margin-top: 20px; }
+}
+
+/* ── SMALL MOBILE (≤380px) ── */
+@media (max-width: 380px) {
+  .kpi-grid  { grid-template-columns: 1fr; }
+  .kpi-value { font-size: 26px; }
+  .main      { padding: 12px 10px 48px; }
+}
+</style>
+</head>
+<body>
+
+<!-- ── MOBILE DRAWER OVERLAY ── -->
+<div class="drawer-overlay" id="drawerOverlay" onclick="closeDrawer()"></div>
+
+<!-- ── MOBILE DRAWER ── -->
+<div class="drawer" id="drawer">
+  <div class="drawer-logo">
+    <div class="side-app">Video Converter <span>/ Analytics</span></div>
+    <button class="drawer-close" onclick="closeDrawer()">✕</button>
+  </div>
+  <div class="nav-section">Navigate</div>
+  <a href="/" class="nav-link" onclick="closeDrawer()">
+    <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="2" y="2" width="5" height="5" rx="1"/><rect x="9" y="2" width="5" height="5" rx="1"/><rect x="2" y="9" width="5" height="5" rx="1"/><rect x="9" y="9" width="5" height="5" rx="1"/></svg>
+    Converter
+  </a>
+  <div class="nav-sep"></div>
+  <div class="nav-section">Analytics</div>
+  <a href="/analytics/" class="nav-link on" onclick="closeDrawer()">
+    <svg width="13" height="13" viewBox="0 0 16 16" fill="currentColor"><rect x="1" y="9" width="3" height="6" rx="1"/><rect x="6.5" y="5" width="3" height="10" rx="1"/><rect x="12" y="2" width="3" height="13" rx="1"/></svg>
+    Overview
+  </a>
+  <div style="margin-top:auto;padding:16px 16px 0;border-top:1px solid var(--border)">
+    <div class="online"><span class="green-dot"></span>Server online</div>
+    <div class="sync-text">Last sync: <span id="syncTimeDrawer">—</span></div>
+    <a href="{% url 'analytics_logout' %}" class="btn-logout">
+      <svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M6 2H3a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h3"/>
+        <polyline points="11 12 15 8 11 4"/>
+        <line x1="15" y1="8" x2="6" y2="8"/>
+      </svg>
+      Sign out
+    </a>
+  </div>
+</div>
+
+<div class="shell">
+
+<!-- ── MOBILE TOPBAR ── -->
+<div class="mobile-topbar">
+  <div class="mobile-logo">Video Converter <span>/ Analytics</span></div>
+  <div class="mobile-actions">
+    <button class="btn-refresh" onclick="doRefresh(this)" style="padding:5px 10px;font-size:11px">↻</button>
+    <button class="hamburger" onclick="openDrawer()" aria-label="Menu">
+      <span></span><span></span><span></span>
+    </button>
+  </div>
+</div>
+
+<!-- ── SIDEBAR (desktop) ── -->
+<aside class="side">
+  <div class="side-logo">
+    <div class="side-app">Video Converter <span>/ Analytics</span></div>
+  </div>
+  <div class="nav-section">Navigate</div>
+  <a href="/" class="nav-link">
+    <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="2" y="2" width="5" height="5" rx="1"/><rect x="9" y="2" width="5" height="5" rx="1"/><rect x="2" y="9" width="5" height="5" rx="1"/><rect x="9" y="9" width="5" height="5" rx="1"/></svg>
+    Converter
+  </a>
+  <div class="nav-sep"></div>
+  <div class="nav-section">Analytics</div>
+  <a href="/analytics/" class="nav-link on">
+    <svg width="13" height="13" viewBox="0 0 16 16" fill="currentColor"><rect x="1" y="9" width="3" height="6" rx="1"/><rect x="6.5" y="5" width="3" height="10" rx="1"/><rect x="12" y="2" width="3" height="13" rx="1"/></svg>
+    Overview
+  </a>
+  <div class="side-foot">
+    <div class="online"><span class="green-dot"></span>Server online</div>
+    <div class="sync-text">Last sync: <span id="syncTime">—</span></div>
+    <a href="{% url 'analytics_logout' %}" class="btn-logout">
+      <svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M6 2H3a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h3"/>
+        <polyline points="11 12 15 8 11 4"/>
+        <line x1="15" y1="8" x2="6" y2="8"/>
+      </svg>
+      Sign out
+    </a>
+  </div>
+</aside>
+
+<!-- ── MAIN ── -->
+<div class="main">
+
+  <!-- Topbar -->
+  <div class="topbar">
+    <div>
+      <div class="page-title">Overview</div>
+      <div class="page-sub" id="nowLabel">—</div>
+    </div>
+    <div class="topbar-right">
+      <div class="seg-group">
+        <button class="seg" onclick="seg(this,'24h')">24h</button>
+        <button class="seg on" onclick="seg(this,'7d')">7d</button>
+        <button class="seg" onclick="seg(this,'30d')">30d</button>
+        <button class="seg" onclick="seg(this,'all')">All</button>
+      </div>
+      <button class="btn-refresh" onclick="doRefresh(this)">↻ Refresh</button>
+    </div>
+  </div>
+
+  <!-- KPIs -->
+  <div class="sec">Key metrics</div>
+  <div class="kpi-grid">
+    <div class="kpi">
+      <div class="kpi-label">Total jobs</div>
+      <div class="kpi-value" id="kv1">—</div>
+      <div class="kpi-delta" id="kd1">—</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-label">Completed</div>
+      <div class="kpi-value" id="kv2">—</div>
+      <div class="kpi-delta" id="kd2">—</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-label">Active now</div>
+      <div class="kpi-value" id="kv3">—</div>
+      <div class="kpi-delta" style="color:var(--faint)">from probed video duration</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-label">Data out</div>
+      <div class="kpi-value" id="kv4">—</div>
+      <div class="kpi-delta" id="kd4">—</div>
+    </div>
+  </div>
+
+  <!-- Traffic -->
+  <div class="sec">Traffic & conversions</div>
+  <div class="row-2-1">
+    <div class="card">
+      <div class="card-title">Visitors & conversions</div>
+      <div class="card-sub">Daily — last 14 days</div>
+      <svg class="chart" id="lineChart" viewBox="0 0 480 130"></svg>
+      <div class="legend-row">
+        <div class="lr-item"><div class="lr-line" style="background:var(--text)"></div>Visitors</div>
+        <div class="lr-item"><div class="lr-line" style="background:var(--blue)"></div>Conversions</div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">Output formats</div>
+      <div class="card-sub">By conversion count</div>
+      <div class="donut-wrap">
+        <svg id="donutChart" viewBox="-1 -1 42 42" width="96" height="96" style="flex-shrink:0"></svg>
+        <div class="donut-legend" id="donutLegend"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Hourly + Heatmap -->
+  <div class="row-2">
+    <div class="card">
+      <div class="card-title">Hourly visitors</div>
+      <div class="card-sub">Today — current hour highlighted</div>
+      <svg class="chart" id="barChart" viewBox="0 0 480 100"></svg>
+    </div>
+    <div class="card">
+      <div class="card-title">Activity heatmap</div>
+      <div class="card-sub">Visits by hour × day of week</div>
+      <div class="hm-scroll"><div id="heatmap"></div></div>
+    </div>
+  </div>
+
+  <!-- Performance -->
+  <div class="sec">Performance</div>
+  <div class="row-3">
+    <div class="card">
+      <div class="card-title">Success rate</div>
+      <div class="card-sub">Done vs error vs cancelled</div>
+      <div class="gauge-wrap">
+        <svg id="gaugeChart" viewBox="0 0 120 70" width="160" style="display:block;margin:0 auto"></svg>
+        <div class="gauge-num" id="gaugeVal">—%</div>
+        <div class="gauge-lbl">completed successfully</div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">Encode strategy</div>
+      <div class="card-sub">FFmpeg strategy breakdown</div>
+      <div class="stat-list" id="strategyStats"></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Input formats</div>
+      <div class="card-sub">By upload count</div>
+      <div class="stat-list" id="inputFmtStats"></div>
+    </div>
+  </div>
+
+  <!-- Recent jobs -->
+  <div class="sec" style="display:flex;align-items:center;gap:10px">
+    Recent conversions
+    <span class="live-indicator"><span class="live-dot"></span>live</span>
+  </div>
+  <div class="tbl-wrap">
+    <table class="tbl">
+      <thead><tr>
+        <th>Filename</th>
+        <th>Formats</th>
+        <th>Size</th>
+        <th>Strategy</th>
+        <th>Status</th>
+        <th>When</th>
+      </tr></thead>
+      <tbody id="jobsBody"></tbody>
+    </table>
+  </div>
+
+  <!-- Retention -->
+  <div class="sec">Visitor retention</div>
+  <div class="kpi-grid">
+    <div class="kpi">
+      <div class="kpi-label">Total visitors</div>
+      <div class="kpi-value" id="rv1">—</div>
+      <div class="kpi-delta" id="rd1">—</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-label">Returning</div>
+      <div class="kpi-value" id="rv2">—</div>
+      <div class="kpi-delta" id="rd2">—</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-label">New visitors</div>
+      <div class="kpi-value" id="rv3">—</div>
+      <div class="kpi-delta" id="rd3">—</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-label">Active (30d)</div>
+      <div class="kpi-value" id="rv4">—</div>
+      <div class="kpi-delta" style="color:var(--faint)">unique browsers</div>
+    </div>
+  </div>
+
+</div><!-- /main -->
+</div><!-- /shell -->
+
+<script>
+const PAL = ['#4f8ef7','#34d399','#fbbf24','#a78bfa','#f87171','#2dd4bf'];
+let range = '7d';
+
+// ── DRAWER ────────────────────────────────────────────────────────────────────
+function openDrawer() {
+  const overlay = document.getElementById('drawerOverlay');
+  const drawer  = document.getElementById('drawer');
+  overlay.style.display = 'block';
+  requestAnimationFrame(() => {
+    overlay.classList.add('open');
+    drawer.classList.add('open');
+  });
+  document.body.style.overflow = 'hidden';
+}
+function closeDrawer() {
+  const overlay = document.getElementById('drawerOverlay');
+  const drawer  = document.getElementById('drawer');
+  overlay.classList.remove('open');
+  drawer.classList.remove('open');
+  setTimeout(() => { overlay.style.display = 'none'; }, 250);
+  document.body.style.overflow = '';
+}
+
+// ── FETCH REAL DATA ───────────────────────────────────────────────────────────
+async function loadData() {
+  const res = await fetch('/analytics/api/');
+  if (res.status === 401) { window.location.href = '/analytics/login/'; return null; }
+  if (!res.ok) throw new Error('API error');
+  return await res.json();
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+async function render() {
+  let d;
+  try { d = await loadData(); } catch { return; }
+  if (!d) return;
+
+  const now = new Date().toLocaleString('en', { weekday: 'long', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+  document.getElementById('nowLabel').textContent = now;
+  document.getElementById('syncTime').textContent = 'just now';
+  const drawerSync = document.getElementById('syncTimeDrawer');
+  if (drawerSync) drawerSync.textContent = 'just now';
+
+  // ── KPIs ──
+  setVal('kv1', d.totalJobs.toLocaleString());
+  setVal('kv2', d.totalDone.toLocaleString());
+  setVal('kv3', d.activeJobs > 0 ? d.activeJobs + ' active' : '—');
+  setVal('kv4', d.dataHuman);
+  document.getElementById('kd1').innerHTML = `${d.totalErrors} errors · ${d.totalCancelled} cancelled`;
+  document.getElementById('kd2').innerHTML = `<span style="color:var(--green)">${d.successRate}%</span> success rate`;
+  document.getElementById('kd4').innerHTML = `from ${d.totalDone} completed conversion${d.totalDone !== 1 ? 's' : ''}`;
+
+  // ── CHARTS ──
+  const labels = d.trendLabels;
+  const convs  = d.trendConvs;
+  const vis    = convs.map(v => v);
+  drawLine(labels, vis, convs);
+  drawBar(d.hourly);
+
+  const outTotal = d.outputFormats.reduce((a, b) => a + b.val, 0) || 1;
+  const outFmts  = d.outputFormats.map(f => ({ ...f, pct: Math.round(f.val / outTotal * 100) }));
+  drawDonut(outFmts);
+
+  const days7 = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+  const heatmap = days7.map((day, i) => ({ day, hours: d.heatmapGrid[i] }));
+  drawHeatmap(heatmap);
+
+  const errPct = d.totalJobs > 0 ? Math.round(d.totalErrors / d.totalJobs * 100) : 0;
+  const cxlPct = d.totalJobs > 0 ? Math.round(d.totalCancelled / d.totalJobs * 100) : 0;
+  drawGauge(d.successRate, errPct, cxlPct);
+
+  const stMax = Math.max(...(d.strategies.map(s => s.val)), 1);
+  drawStats('strategyStats', d.strategies.map(s => ({ ...s, pct: Math.round(s.val / stMax * 100) })), '#4f8ef7');
+
+  const inMax = Math.max(...(d.inputFormats.map(f => f.val)), 1);
+  drawStats('inputFmtStats', d.inputFormats.map(f => ({ ...f, pct: Math.round(f.val / inMax * 100) })), '#34d399');
+
+  drawJobs(d.recentJobs);
+
+  // ── Retention KPIs ──
+  setVal('rv1', d.totalVisitors.toLocaleString());
+  setVal('rv2', d.returningVisitors.toLocaleString());
+  setVal('rv3', d.newVisitors.toLocaleString());
+  setVal('rv4', d.activeVisitors30d.toLocaleString());
+  document.getElementById('rd1').innerHTML = `${d.activeVisitors30d} active in last 30 days`;
+  document.getElementById('rd2').innerHTML = `<span style="color:var(--green)">${d.retentionRate}%</span> retention rate`;
+  document.getElementById('rd3').innerHTML = `${d.returningVisitors} came back`;
+}
+
+function setVal(id, val) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.style.opacity = '0';
+  requestAnimationFrame(() => {
+    el.textContent = val;
+    el.style.transition = 'opacity .2s';
+    el.style.opacity = '1';
+  });
+}
+
+// ── LINE CHART ────────────────────────────────────────────────────────────────
+function drawLine(labels, vis, convs) {
+  const el = document.getElementById('lineChart');
+  const W = 480, H = 130, pl = 36, pr = 8, pt = 8, pb = 22;
+  const iW = W - pl - pr, iH = H - pt - pb;
+  const n = labels.length;
+  const maxV = Math.max(...vis, ...convs, 1) * 1.18;
+  const xp = i => pl + (i / Math.max(n - 1, 1)) * iW;
+  const yp = v => pt + iH - (v / maxV) * iH;
+  let s = '';
+  [0, .25, .5, .75, 1].forEach(t => {
+    const y = pt + iH * (1 - t);
+    s += `<line class="gl" x1="${pl}" y1="${y}" x2="${W - pr}" y2="${y}"/>`;
+    if (t > 0) s += `<text class="ax" x="${pl - 4}" y="${y + 3}" text-anchor="end">${Math.round(maxV * t)}</text>`;
+  });
+  const step = n > 10 ? 3 : n > 5 ? 2 : 1;
+  labels.forEach((l, i) => {
+    if (i % step === 0)
+      s += `<text class="ax" x="${xp(i)}" y="${H - 4}" text-anchor="middle">${l}</text>`;
+  });
+  const vPath = convs.map((_, i) => `${i === 0 ? 'M' : 'L'}${xp(i)},${yp(convs[i])}`).join(' ');
+  const base  = `L${xp(n - 1)},${H - pb} L${xp(0)},${H - pb} Z`;
+  s += `<path d="${vPath} ${base}" fill="#4f8ef7" opacity=".08"/>`;
+  s += `<path d="${vPath}" fill="none" stroke="#4f8ef7" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>`;
+  convs.forEach((v, i) => s += `<circle cx="${xp(i)}" cy="${yp(v)}" r="2.5" fill="#4f8ef7" stroke="#111" stroke-width="1.5"/>`);
+  el.innerHTML = s;
+}
+
+// ── BAR CHART ─────────────────────────────────────────────────────────────────
+function drawBar(hourly) {
+  const el = document.getElementById('barChart');
+  const W = 480, H = 100, pl = 28, pr = 6, pt = 4, pb = 18;
+  const iW = W - pl - pr, iH = H - pt - pb;
+  const maxV = Math.max(...hourly, 1);
+  const bw = iW / 24 - 2;
+  const nowH = new Date().getHours();
+  let s = '';
+  hourly.forEach((v, i) => {
+    const x  = pl + i * (iW / 24);
+    const bh = Math.max((v / maxV) * iH, v > 0 ? 2 : 0);
+    const y  = pt + iH - bh;
+    s += `<rect x="${x}" y="${y}" width="${bw}" height="${bh}" rx="1" fill="${i === nowH ? '#4f8ef7' : '#1e1e1e'}"/>`;
+    if (i % 4 === 0)
+      s += `<text class="ax" x="${x + bw / 2}" y="${H - 3}" text-anchor="middle">${i}h</text>`;
+  });
+  el.innerHTML = s;
+}
+
+// ── DONUT ─────────────────────────────────────────────────────────────────────
+function drawDonut(fmts) {
+  const svg    = document.getElementById('donutChart');
+  const legend = document.getElementById('donutLegend');
+  if (!fmts.length) {
+    svg.innerHTML = '';
+    legend.innerHTML = '<span style="font-size:11px;color:var(--faint)">No data yet</span>';
+    return;
+  }
+  const total = fmts.reduce((a, b) => a + b.val, 0) || 1;
+  const cx = 20, cy = 20, r = 18, ir = 11;
+  let angle = -Math.PI / 2, paths = '';
+  fmts.forEach((f, i) => {
+    const sl = (f.val / total) * 2 * Math.PI;
+    const x1 = cx + r * Math.cos(angle), y1 = cy + r * Math.sin(angle);
+    const x2 = cx + r * Math.cos(angle + sl), y2 = cy + r * Math.sin(angle + sl);
+    paths += `<path d="M${cx},${cy} L${x1.toFixed(2)},${y1.toFixed(2)} A${r},${r},0,${sl > Math.PI ? 1 : 0},1,${x2.toFixed(2)},${y2.toFixed(2)} Z" fill="${PAL[i % PAL.length]}" stroke="#111" stroke-width=".8" opacity=".9"/>`;
+    angle += sl;
+  });
+  paths += `<circle cx="${cx}" cy="${cy}" r="${ir}" fill="#111"/>`;
+  svg.innerHTML = paths;
+  legend.innerHTML = fmts.map((f, i) => `
+    <div class="leg-item">
+      <div class="leg-swatch" style="background:${PAL[i % PAL.length]}"></div>
+      <span class="leg-name">${f.name}</span>
+      <span class="leg-pct">${f.pct}%</span>
+    </div>`).join('');
+}
+
+// ── HEATMAP ───────────────────────────────────────────────────────────────────
+function drawHeatmap(hm) {
+  const el = document.getElementById('heatmap');
+  const maxV = Math.max(...hm.flatMap(d => d.hours), 1);
+  let s = '<div class="hm-grid">';
+  s += '<div></div>';
+  for (let h = 0; h < 24; h++)
+    s += `<div style="font-size:9px;color:#666;text-align:center;font-family:var(--mono)">${h % 4 === 0 ? h + 'h' : ''}</div>`;
+  hm.forEach(({ day, hours }) => {
+    s += `<div class="hm-label">${day}</div>`;
+    hours.forEach(v => {
+      const a = v > 0 ? 0.06 + (v / maxV) * 0.82 : 0.02;
+      s += `<div class="hm-cell" style="background:rgba(79,142,247,${a.toFixed(2)})" title="${v} jobs"></div>`;
+    });
+  });
+  s += '</div>';
+  el.innerHTML = s;
+}
+
+// ── GAUGE ─────────────────────────────────────────────────────────────────────
+function drawGauge(pct, errP, cxlP) {
+  const svg = document.getElementById('gaugeChart');
+  document.getElementById('gaugeVal').textContent = pct + '%';
+  const cx = 60, cy = 60, r = 48;
+  const fa = Math.PI + ((pct || 0) / 100) * Math.PI;
+  const ex = cx + r * Math.cos(fa - Math.PI);
+  const ey = cy + r * Math.sin(fa - Math.PI);
+  svg.innerHTML = `
+    <path d="M${cx - r},${cy} A${r},${r},0,0,1,${cx + r},${cy}" fill="none" stroke="#1e1e1e" stroke-width="7" stroke-linecap="round"/>
+    <path d="M${cx - r},${cy} A${r},${r},0,0,1,${ex.toFixed(2)},${ey.toFixed(2)}" fill="none" stroke="#ededed" stroke-width="7" stroke-linecap="round"/>
+    <text x="${cx - 44}" y="${cy - 10}" font-family="Geist Mono,monospace" font-size="9" fill="#888">Err ${errP}%</text>
+    <text x="${cx + 44}" y="${cy - 10}" font-family="Geist Mono,monospace" font-size="9" fill="#888" text-anchor="end">Cxl ${cxlP}%</text>
+  `;
+}
+
+// ── STAT BARS ─────────────────────────────────────────────────────────────────
+function drawStats(id, items, color) {
+  const el = document.getElementById(id);
+  if (!items || !items.length) {
+    el.innerHTML = '<p style="font-size:11px;color:var(--faint)">No data yet</p>';
+    return;
+  }
+  el.innerHTML = items.map(it => `
+    <div class="stat-item">
+      <span class="stat-name">${it.name}</span>
+      <div class="stat-track">
+        <div class="stat-fill" style="width:${it.pct}%;background:${color}"></div>
+      </div>
+      <span class="stat-num">${it.val}</span>
+    </div>`).join('');
+}
+
+// ── JOBS TABLE ────────────────────────────────────────────────────────────────
+function drawJobs(jobs) {
+  const sc = s => ({ done: 'pill-done', error: 'pill-err', cancelled: 'pill-cxl', converting: 'pill-act', queued: 'pill-act', paused: 'pill-act' }[s] || 'pill-cxl');
+  if (!jobs || !jobs.length) {
+    document.getElementById('jobsBody').innerHTML =
+      `<tr><td colspan="6" style="text-align:center;color:var(--faint);padding:24px">No conversions yet</td></tr>`;
+    return;
+  }
+  document.getElementById('jobsBody').innerHTML = jobs.map(j => `
+    <tr>
+      <td class="name" title="${j.name}">${j.name}</td>
+      <td>
+        <span class="fmt">${j.inFmt.toUpperCase()}</span>
+        <span style="color:var(--faint);font-size:10px;margin:0 3px">→</span>
+        <span class="fmt">${j.outFmt.toUpperCase()}</span>
+      </td>
+      <td>${j.size}</td>
+      <td style="font-size:11px">${j.strategy}</td>
+      <td><span class="pill ${sc(j.status)}">${j.status}</span></td>
+      <td style="color:var(--faint)">${j.when}</td>
+    </tr>`).join('');
+}
+
+// ── CONTROLS ──────────────────────────────────────────────────────────────────
+function seg(btn, r) {
+  document.querySelectorAll('.seg').forEach(b => b.classList.remove('on'));
+  btn.classList.add('on');
+  range = r;
+  render();
+}
+
+function doRefresh(btn) {
+  const orig = btn.textContent;
+  btn.textContent = '↻';
+  render().then(() => btn.textContent = orig || '↻ Refresh');
+}
+
+// ── INIT ──────────────────────────────────────────────────────────────────────
+render();
+setInterval(render, 30000);
+setInterval(() => {
+  const now = new Date().toLocaleString('en', { weekday: 'long', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+  document.getElementById('nowLabel').textContent = now;
+}, 10000);
+</script>
+</body>
+</html>
