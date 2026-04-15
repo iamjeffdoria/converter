@@ -124,12 +124,17 @@ LOGIN_REDIRECT_URL = '/convert/'
 LOGOUT_REDIRECT_URL = '/'
 
 SOCIALACCOUNT_PROVIDERS = {
-    'google': {
-        'SCOPE': ['profile', 'email', 'openid'],
-        'AUTH_PARAMS': {
-            'access_type': 'online',
+    "google": {
+        "APP": {
+            "client_id": os.environ.get("GOOGLE_CLIENT_ID"),
+            "secret": os.environ.get("GOOGLE_CLIENT_SECRET"),
+            "key": "",
         },
-        'FETCH_USERINFO': True,
+        "SCOPE": ["profile", "email", "openid"],
+        "AUTH_PARAMS": {
+            "access_type": "online",
+        },
+        "FETCH_USERINFO": True,
     }
 }
 
@@ -137,3 +142,7 @@ GROQ_API_KEY = os.environ.get('GROQ_API_KEY')
 
 SOCIALACCOUNT_SIGNUP_FORM_CLASS = None  # uses allauth default
 ACCOUNT_SIGNUP_FORM_CLASS = None
+
+CSRF_TRUSTED_ORIGINS = [
+    "https://converter-972n.onrender.com"
+]
