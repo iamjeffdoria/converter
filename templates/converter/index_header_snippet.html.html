@@ -1,0 +1,71 @@
+<!-- ── HEADER ── paste this block to replace your existing <header>…</header> in index.html -->
+  <header>
+    <div class="logo-wrap">
+      <img src="{% static 'converter/converter-logo.png' %}" alt="Logo" class="logo-img">
+      <div class="logo-text">Video <em>Converter</em></div>
+    </div>
+    <div class="header-right">
+
+      <a href="/pricing/" class="pricing-link">
+        <span class="pulse-dot"></span>
+        Credits & Pricing
+      </a>
+
+      {% if user.is_authenticated %}
+        {% if credits > 0 %}
+          <span style="font-family:var(--mono);font-size:9px;color:var(--accent);border:1px solid rgba(212,255,0,0.3);padding:6px 12px;background:var(--accent-soft)">
+            ⚡ {{ credits }} credits
+          </span>
+        {% elif free_remaining > 0 %}
+          <span style="font-family:var(--mono);font-size:9px;color:var(--muted);border:1px solid var(--border-mid);padding:6px 12px;">
+            {{ free_remaining }} free left
+          </span>
+        {% endif %}
+
+        <!-- Username pill + logout -->
+        <span style="font-family:var(--mono);font-size:9px;color:var(--text-mid);border:1px solid var(--border-mid);padding:6px 12px;background:var(--surface)">
+          👤 {{ user.username }}
+        </span>
+        <a href="/logout/" style="
+          font-family:var(--mono);font-size:9px;font-weight:700;
+          letter-spacing:0.1em;text-transform:uppercase;
+          color:var(--muted);text-decoration:none;
+          border:1px solid var(--border-mid);padding:6px 12px;
+          transition:all 0.15s;
+        " onmouseover="this.style.color='var(--danger)';this.style.borderColor='var(--danger)'"
+           onmouseout="this.style.color='var(--muted)';this.style.borderColor='var(--border-mid)'">
+          Sign Out
+        </a>
+
+      {% else %}
+        <!-- Guest: show sign in + register -->
+        <a href="/login/" style="
+          font-family:var(--mono);font-size:9px;font-weight:700;
+          letter-spacing:0.1em;text-transform:uppercase;
+          color:var(--text-mid);text-decoration:none;
+          border:1px solid var(--border-mid);padding:6px 12px;
+          transition:all 0.15s;
+        " onmouseover="this.style.color='var(--accent)';this.style.borderColor='var(--accent)'"
+           onmouseout="this.style.color='var(--text-mid)';this.style.borderColor='var(--border-mid)'">
+          Sign In
+        </a>
+        <a href="/register/" style="
+          font-family:var(--mono);font-size:9px;font-weight:700;
+          letter-spacing:0.1em;text-transform:uppercase;
+          color:#000;text-decoration:none;
+          border:1px solid var(--accent);padding:6px 12px;
+          background:var(--accent);
+          transition:background 0.15s;
+        " onmouseover="this.style.background='var(--accent-dim)'"
+           onmouseout="this.style.background='var(--accent)'">
+          Register
+        </a>
+      {% endif %}
+
+      <div class="gpu-pill">
+        <span class="pulse-dot"></span>
+        GPU · Stream Copy · CPU
+      </div>
+
+    </div>
+  </header>

@@ -1,0 +1,150 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sign In Via Google — ExportReady</title>
+<link rel="icon" type="image/png" href="{% static 'assets/img/converter-logo.png' %}">
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg:           #f0ece4;
+    --surface:      #e8e4dc;
+    --surface2:     #e0dcd4;
+    --border-mid:   #cccccc;
+    --border-bright:#aaaaaa;
+    --accent:       #6600ff;
+    --accent-dim:   #5500cc;
+    --accent-soft:  rgba(102,0,255,0.07);
+    --text:         #111111;
+    --text-mid:     #333333;
+    --muted:        #777777;
+    --mono: 'JetBrains Mono', monospace;
+    --sans: 'Manrope', sans-serif;
+  }
+  html, body { min-height: 100%; background: var(--bg); color: var(--text); font-family: var(--sans); }
+
+  .page {
+    min-height: 100vh; display: grid; grid-template-rows: auto 1fr auto;
+    max-width: 960px; margin: 0 auto; padding: 0 28px; position: relative; z-index: 1;
+  }
+  header {
+    padding: 16px 0; border-bottom: 1px solid var(--border-mid);
+    display: flex; align-items: center; gap: 16px;
+  }
+  .logo-wrap { display: flex; align-items: center; gap: 14px; text-decoration: none; }
+  .logo-img { height: 36px; width: auto; }
+  .logo-text { font-family: var(--sans); font-weight: 800; font-size: clamp(18px,3.5vw,28px); letter-spacing: -0.04em; color: var(--text); }
+  .logo-text em { color: var(--accent); font-style: normal; }
+
+  main { display: flex; align-items: center; justify-content: center; padding: 24px 0; }
+  .auth-wrap { width: 100%; max-width: 400px; }
+
+  .auth-header { margin-bottom: 16px; }
+  .auth-eyebrow {
+    font-family: var(--mono); font-size: 9px; font-weight: 700;
+    letter-spacing: 0.2em; text-transform: uppercase;
+    color: var(--muted); margin-bottom: 8px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .auth-eyebrow::after { content: ''; flex: 1; height: 1px; background: var(--border-mid); }
+  .auth-title { font-family: var(--sans); font-weight: 800; font-size: clamp(22px,5vw,28px); letter-spacing: -0.04em; color: var(--text); margin-bottom: 4px; }
+  .auth-sub { font-family: var(--mono); font-size: 10px; color: var(--muted); letter-spacing: 0.04em; }
+
+  .auth-card { background: var(--surface); border: 1px solid var(--border-mid); padding: 20px; }
+
+  .google-info {
+    display: flex; align-items: center; gap: 12px;
+    background: var(--accent-soft); border: 1px solid rgba(102,0,255,0.15);
+    border-left: 3px solid var(--accent);
+    padding: 10px 12px; margin-bottom: 16px;
+    font-family: var(--mono); font-size: 10px; color: var(--text-mid); line-height: 1.6;
+  }
+
+  .btn-continue {
+    width: 100%; font-family: var(--mono); font-size: 11px; font-weight: 700;
+    letter-spacing: 0.12em; text-transform: uppercase; padding: 12px;
+    background: var(--accent); color: #fff; border: 1px solid var(--accent);
+    cursor: pointer; transition: background 0.15s, box-shadow 0.15s;
+    display: flex; align-items: center; justify-content: center; gap: 10px;
+  }
+  .btn-continue:hover { background: var(--accent-dim); box-shadow: 0 0 20px rgba(102,0,255,0.25); }
+
+  .btn-cancel {
+    display: block; width: 100%; margin-top: 10px; padding: 10px;
+    font-family: var(--mono); font-size: 10px; font-weight: 700;
+    letter-spacing: 0.1em; text-transform: uppercase;
+    color: var(--muted); background: transparent;
+    border: 1px solid var(--border-mid); cursor: pointer;
+    text-align: center; text-decoration: none;
+    transition: border-color 0.15s, color 0.15s;
+  }
+  .btn-cancel:hover { border-color: var(--border-bright); color: var(--text-mid); }
+
+  footer {
+    padding: 16px 0; border-top: 1px solid var(--border-mid);
+    display: flex; justify-content: space-between;
+    font-family: var(--mono); font-size: 9px; color: var(--text-mid); letter-spacing: 0.08em;
+  }
+
+  @media (max-width: 480px) {
+    .page { padding: 0 14px; }
+    header { padding: 12px 0; }
+    .logo-img { height: 28px; }
+    .auth-card { padding: 16px; }
+    main { padding: 16px 0; }
+  }
+</style>
+</head>
+<body>
+<div class="page">
+  <header>
+    <a href="/" class="logo-wrap">
+      <img src="{% static 'assets/img/converter-logo.png' %}" alt="Logo" class="logo-img">
+      <div class="logo-text">Export<em>Ready</em></div>
+    </a>
+  </header>
+
+  <main>
+    <div class="auth-wrap">
+      <div class="auth-header">
+        <div class="auth-eyebrow">Google OAuth</div>
+        <div class="auth-title">Continue with Google</div>
+        <div class="auth-sub">You're being signed in via your Google account</div>
+      </div>
+      <div class="auth-card">
+        <div class="google-info">
+          <svg width="20" height="20" viewBox="0 0 48 48" style="flex-shrink:0">
+            <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
+            <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
+            <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>
+            <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.31-8.16 2.31-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
+          </svg>
+          You are about to sign in using a third-party account from Google. Your profile info will be used to create or access your ExportReady account.
+        </div>
+        <form method="post" action="">
+          {% csrf_token %}
+          <button type="submit" class="btn-continue">
+            <svg width="16" height="16" viewBox="0 0 48 48">
+              <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
+              <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
+              <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>
+              <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.31-8.16 2.31-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
+            </svg>
+            Continue with Google
+          </button>
+        </form>
+        <a href="/login/" class="btn-cancel">← Cancel, go back</a>
+      </div>
+    </div>
+  </main>
+
+  <footer>
+    <span>Files deleted after 1 hour</span>
+    <span>Built for creators</span>
+  </footer>
+</div>
+</body>
+</html>

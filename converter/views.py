@@ -23,7 +23,11 @@ import hashlib
 import requests as http_requests
 from django.utils import timezone
 import base64
-
+from django.contrib.auth import authenticate, login as auth_login, logout as auth_logout
+from django.contrib.auth.models import User
+from django.contrib.auth.decorators import login_required
+import subprocess
+from django.http import FileResponse, Http404
 
 
 # ── GLOBAL STATE ──────────────────────────────────────────────────────────────
@@ -31,6 +35,7 @@ JOBS      = {}
 JOBS_LOCK = threading.Lock()
 
 _CPU_THREADS = os.cpu_count() or 4
+
 
 # Limits concurrent ffmpeg processes to avoid OOM under heavy load
 _MAX_CONCURRENT  = max(1, math.floor(_CPU_THREADS / 2))
@@ -44,6 +49,9 @@ _JOB_TTL = 3600  # 1 hour
 
 # Max jobs allowed in queue+converting state before rejecting new uploads
 _MAX_QUEUE = 20
+
+# Max concurrent jobs a single user can have active at once
+_MAX_JOBS_PER_USER = 2
 
 # Supported formats
 SUPPORTED_INPUT = {'.mkv', '.avi', '.mov', '.webm', '.mp4', '.flv', '.wmv', '.ts', '.m4v', '.3gp'}
@@ -91,19 +99,20 @@ _reaper_thread.start()
 
 # ── VIEWS ─────────────────────────────────────────────────────────────────────
 def index(request):
-    visitor_id = request.COOKIES.get('vc_visitor_id', '')
     credits = 0
     free_remaining = 0
-    if visitor_id:
-        try:
-            account = models.UserAccount.objects.get(visitor_id=visitor_id)
-            credits = account.credits
-            free_remaining = account.get_free_remaining()
-        except models.UserAccount.DoesNotExist:
-            pass
+    if request.user.is_authenticated:
+        account, _ = UserAccount.objects.get_or_create(
+            user=request.user,
+            defaults={'visitor_id': request.COOKIES.get('vc_visitor_id', '')}
+        )
+        credits = account.credits
+        free_remaining = account.get_free_remaining()
+    
     response = render(request, 'converter/index.html', {
         'credits': credits,
         'free_remaining': free_remaining,
+        'user': request.user,
     })
     return _track_visitor(request, response)
 
@@ -123,8 +132,51 @@ def active_job(request, job_id: str):
         'output_format': job.get('output_format', ''),
         'file_size':     _human_size(job.get('file_size', 0)) if job['status'] == 'done' else '',
         'error':         job.get('error'),
+        'srt_ready':     bool(job.get('srt_path') and os.path.exists(job.get('srt_path', ''))),
     })
 
+
+def register(request):
+    if request.user.is_authenticated:
+        return redirect('index')
+    error = None
+    if request.method == 'POST':
+        username = request.POST.get('username', '').strip()
+        email    = request.POST.get('email', '').strip()
+        password = request.POST.get('password', '')
+        password2 = request.POST.get('password2', '')
+        if not username or not password:
+            error = 'Username and password are required.'
+        elif password != password2:
+            error = 'Passwords do not match.'
+        elif User.objects.filter(username=username).exists():
+            error = 'Username already taken.'
+        else:
+            user = User.objects.create_user(username=username, email=email, password=password)
+            visitor_id = request.COOKIES.get('vc_visitor_id', uuid.uuid4().hex)
+            account = UserAccount.objects.create(user=user, visitor_id=visitor_id)
+            auth_login(request, user, backend='django.contrib.auth.backends.ModelBackend')
+            return redirect('index')
+    response = render(request, 'converter/register.html', {'error': error})
+    return response
+
+def login_view(request):
+    if request.user.is_authenticated:
+        return redirect('index')
+    error = None
+    if request.method == 'POST':
+        username = request.POST.get('username', '').strip()
+        password = request.POST.get('password', '')
+        user = authenticate(request, username=username, password=password)
+        if user:
+            auth_login(request, user)
+            return redirect(request.POST.get('next', 'index'))
+        error = 'Invalid username or password.'
+    return render(request, 'converter/login.html', {'error': error})
+
+def logout_view(request):
+    auth_logout(request)
+    return redirect('landing_page')
 
 @csrf_exempt
 @require_POST
@@ -143,26 +195,40 @@ def upload(request):
         return JsonResponse({'error': f'Unsupported output format: {output_format}'}, status=400)
 
     # ── TIER CHECK ────────────────────────────────────────────────────────────────    
-    visitor_id = request.COOKIES.get('vc_visitor_id', '')
-    if not visitor_id:
-        return JsonResponse({'error': 'Session not found. Please refresh and try again.'}, status=400)
+    if not request.user.is_authenticated:
+        return JsonResponse({'error': 'Please log in to convert files.'}, status=401)
 
-    account, _ = UserAccount.objects.get_or_create(visitor_id=visitor_id)
+    account, _ = UserAccount.objects.get_or_create(
+        user=request.user,
+        defaults={'visitor_id': request.COOKIES.get('vc_visitor_id', uuid.uuid4().hex)}
+    )
+    visitor_id = account.visitor_id  # keep for CreditOrder/analytics compatibility
     allowed, reason, is_paid = account.can_convert(file.size)
 
     if not allowed:
         return JsonResponse({'error': reason}, status=403)
 
-    # ── MODIFIED: reject early if queue is full ───────────────────────────────
+# ── Reject early if global queue is full OR user is hogging slots ─────────
     with JOBS_LOCK:
         queued_or_converting = sum(
             1 for j in JOBS.values()
             if j['status'] in ('queued', 'converting')
         )
+        user_active = sum(
+            1 for j in JOBS.values()
+            if j['status'] in ('queued', 'converting')
+            and j.get('user_id') == request.user.id
+        )
+
     if queued_or_converting >= _MAX_QUEUE:
         return JsonResponse(
             {'error': 'Server busy. Please try again in a few minutes.'},
             status=503
+        )
+    if user_active >= _MAX_JOBS_PER_USER:
+        return JsonResponse(
+            {'error': f'You already have {_MAX_JOBS_PER_USER} exports running. Wait for one to finish.'},
+            status=429
         )
 
     job_id     = uuid.uuid4().hex
@@ -178,6 +244,15 @@ def upload(request):
     resolution = request.POST.get('resolution', 'original')
     quality    = request.POST.get('quality', 'auto')
     codec_pref = request.POST.get('codec', 'auto')
+    captions   = request.POST.get('captions', 'off') == 'on'
+    caption_style = request.POST.get('caption_style', 'soft')
+
+
+    import re
+    custom_name = request.POST.get('output_filename', '').strip()
+    if custom_name:
+        custom_name = re.sub(r'[\\/:*?"<>|]', '', custom_name)
+    output_filename = (custom_name if custom_name else Path(file.name).stem) + out_ext
 
     CHUNK = 4 * 1024 * 1024
     with open(input_path, 'wb') as f:
@@ -198,26 +273,28 @@ def upload(request):
             'input':         str(input_path),
             'output':        str(output_path),
             'output_format': output_format,
-            'filename':      Path(file.name).stem + out_ext,
+            'filename':      output_filename,
             'input_name':    file.name,
             'error':         None,
             'created_at':    time.time(),
             'resolution':    resolution,
             'quality':       quality,
             'codec_pref':    codec_pref,
+            'captions':      captions,
+            'caption_style': caption_style,
+            'srt_path':      None,
+            'user_id':       request.user.id,   # NEW
         }
-        JOB_PAUSE[job_id]  = pause_event
-        JOB_CANCEL[job_id] = cancel_event
 
     thread = threading.Thread(target=_convert, args=(job_id,), daemon=True)
     # Deduct credit or free usage
     if is_paid:
         cost = 1  # flat 1 credit regardless of size
-        UserAccount.objects.filter(visitor_id=visitor_id).update(
+        UserAccount.objects.filter(user=request.user).update(
             credits=F('credits') - cost
         )
     else:
-        UserAccount.objects.filter(visitor_id=visitor_id).update(
+        UserAccount.objects.filter(user=request.user).update(
             free_used_month=F('free_used_month') + 1
         )
     thread.start()
@@ -291,7 +368,10 @@ def cancel_job(request, job_id: str):
         job_snapshot = dict(JOBS[job_id])  # snapshot after status update
 
     # ── ADD THIS ──────────────────────────────────────────────────────────
-    _save_job_record(job_id, job_snapshot, 'cancelled', 0)
+    _save_job_record(
+    job_id, job_snapshot, 'cancelled', 0,
+    user=request.user if request.user.is_authenticated else None  # NEW
+    )
 
     _cleanup_job_files(job_id)
     return JsonResponse({'cancelled': True})
@@ -324,7 +404,64 @@ def _probe_video(input_path: str) -> dict:
     except Exception:
         return {'vcodec': None, 'acodec': None, 'duration': None}
 
-def _save_job_record(job_id: str, job: dict, status: str, file_size: int):
+def _transcribe_with_whisper(video_path: str, job_id: str) -> str | None:
+    try:
+        with JOBS_LOCK:
+            JOBS[job_id]['strategy'] = '🎙 Transcribing captions…'
+            JOBS[job_id]['caption_progress'] = 0
+            JOBS[job_id]['caption_stage'] = 'transcribing'
+
+        with open(video_path, 'rb') as f:
+            resp = http_requests.post(
+                'https://api.groq.com/openai/v1/audio/transcriptions',
+                headers={'Authorization': f'Bearer {settings.GROQ_API_KEY}'},
+                files={'file': (Path(video_path).name, f, 'video/mp4')},
+                data={
+                    'model': 'whisper-large-v3',
+                    'response_format': 'verbose_json',
+                    'timestamp_granularities[]': 'segment',
+                },
+                timeout=300,
+            )
+        resp.raise_for_status()
+        result = resp.json()
+
+        with JOBS_LOCK:
+            JOBS[job_id]['caption_progress'] = 100
+            JOBS[job_id]['caption_stage'] = 'transcribed'
+
+        srt_path = video_path + '.srt'
+        segments = result.get('segments', [])
+
+        def fmt_ts(s):
+            h = int(s // 3600)
+            m = int((s % 3600) // 60)
+            sec = s % 60
+            return f"{h:02d}:{m:02d}:{sec:06.3f}".replace('.', ',')
+
+        lines = []
+        for i, seg in enumerate(segments, 1):
+            lines.append(str(i))
+            lines.append(f"{fmt_ts(seg['start'])} --> {fmt_ts(seg['end'])}")
+            lines.append(seg['text'].strip())
+            lines.append('')
+
+        with open(srt_path, 'w', encoding='utf-8') as f:
+            f.write('\n'.join(lines))
+
+        with JOBS_LOCK:
+            if JOBS[job_id].get('caption_style') == 'soft':
+                JOBS[job_id]['caption_progress'] = 100
+                JOBS[job_id]['caption_stage'] = 'done'
+
+        return srt_path
+    except Exception as e:
+        with JOBS_LOCK:
+            JOBS[job_id]['error'] = f'Caption error: {e}'
+        return None
+
+
+def _save_job_record(job_id: str, job: dict, status: str, file_size: int, user=None):  # NEW: user param
     """Persist a completed/failed/cancelled job to SQLite."""
     try:
         inp     = job.get('input', '')
@@ -332,6 +469,7 @@ def _save_job_record(job_id: str, job: dict, status: str, file_size: int):
         JobRecord.objects.update_or_create(
             job_id=job_id,
             defaults={
+                'user':          user,                          # NEW
                 'input_name':    job.get('input_name', 'unknown'),
                 'input_ext':     inp_ext,
                 'output_format': job.get('output_format', '?'),
@@ -343,11 +481,10 @@ def _save_job_record(job_id: str, job: dict, status: str, file_size: int):
             }
         )
     except Exception:
-        pass  # never crash the conversion thread over analytics
+        pass
 
 # ── CONVERSION THREAD ─────────────────────────────────────────────────────────
 def _convert(job_id: str):
-    # ── MODIFIED: jobs queue here until a semaphore slot is free ─────────────
     with JOBS_LOCK:
         JOBS[job_id]['strategy'] = 'Waiting for slot…'
 
@@ -358,6 +495,14 @@ def _convert(job_id: str):
 
         input_path  = job['input']
         output_path = job['output']
+
+        # NEW: resolve user object from stored user_id
+        from django.contrib.auth.models import User as _User
+        user_id  = job.get('user_id')
+        user_obj = None
+        if user_id:
+            try: user_obj = _User.objects.get(pk=user_id)
+            except: pass
         out_fmt     = job['output_format']
         fmt         = SUPPORTED_OUTPUT[out_fmt]
         acodec      = fmt['acodec']
@@ -519,6 +664,59 @@ def _convert(job_id: str):
         # AFTER:
         if success:
             file_size = os.path.getsize(output_path)
+# ── WHISPER CAPTIONS ──────────────────────────────────────────
+            srt_path = None
+            with JOBS_LOCK:
+                captions_requested = JOBS[job_id].get('captions', False)
+                caption_style      = JOBS[job_id].get('caption_style', 'soft')
+
+            if captions_requested:
+                def _run_transcription():
+                    result = _transcribe_with_whisper(output_path, job_id)
+                    with JOBS_LOCK:
+                        JOBS[job_id]['srt_path'] = result
+
+                    # ── HARDSUB: burn captions into video ─────────────────
+                    if result and caption_style == 'hard':
+                        try:
+                            with JOBS_LOCK:
+                                JOBS[job_id]['strategy'] = '🔥 Burning captions into video…'
+                                JOBS[job_id]['caption_progress'] = 0
+                                JOBS[job_id]['caption_stage'] = 'burning'
+
+                            hardsubbed_path = output_path + '_hardsubbed' + Path(output_path).suffix
+
+                            # On Windows, ffmpeg subtitles filter needs forward slashes
+                            # and the colon in drive letter escaped as \:
+                            srt_for_ffmpeg = result.replace('\\', '/').replace('C:/', 'C\\:/')
+
+                            burn_cmd = [
+                                'ffmpeg', '-y', '-i', output_path,
+                                '-vf', f"subtitles=filename='{srt_for_ffmpeg}':force_style='FontSize=18,FontName=Arial,PrimaryColour=&Hffffff,OutlineColour=&H000000,Outline=2,Alignment=2'",
+                                '-c:v', 'libx264', '-preset', 'fast', '-crf', '18',
+                                '-c:a', 'copy',
+                                hardsubbed_path
+                            ]
+                            proc = subprocess.run(burn_cmd, capture_output=True, timeout=600)
+
+                            if proc.returncode == 0:
+                                os.replace(hardsubbed_path, output_path)
+                                new_size = os.path.getsize(output_path)
+                                with JOBS_LOCK:
+                                    JOBS[job_id]['file_size'] = new_size
+                                    JOBS[job_id]['caption_progress'] = 100
+                                    JOBS[job_id]['caption_stage'] = 'done'
+                            else:
+                                err_out = proc.stderr.decode('utf-8', errors='ignore')[-300:]
+                                with JOBS_LOCK:
+                                    JOBS[job_id]['error'] = f'Caption burn failed: {err_out}'
+                        except Exception as e:
+                            with JOBS_LOCK:
+                                JOBS[job_id]['error'] = f'Hardsub error: {e}'
+
+                t = threading.Thread(target=_run_transcription, daemon=True)
+                t.start()
+
             with JOBS_LOCK:
                 JOBS[job_id].update({
                     'status':    'done',
@@ -526,12 +724,13 @@ def _convert(job_id: str):
                     'speed':     '',
                     'eta':       '',
                     'file_size': file_size,
+                    'srt_path':  srt_path,
                 })
-                _save_job_record(job_id, JOBS[job_id], 'done', file_size)
+                _save_job_record(job_id, JOBS[job_id], 'done', file_size, user=user_obj) 
         else:
             with JOBS_LOCK:
                 JOBS[job_id]['status'] = 'error'
-                _save_job_record(job_id, JOBS[job_id], 'error', 0)
+                _save_job_record(job_id, JOBS[job_id], 'error', 0, user=user_obj) 
 
 
 # ── FFMPEG RUNNER ─────────────────────────────────────────────────────────────
@@ -640,13 +839,16 @@ def status(request, job_id: str):
         return JsonResponse({'error': 'Job not found.'}, status=404)
 
     response = {
-        'status':   job['status'],
-        'progress': job['progress'],
-        'strategy': job.get('strategy', ''),
-        'speed':    job.get('speed', ''),
-        'eta':      job.get('eta', ''),
-        'error':    job.get('error'),
-        'filename': job.get('filename'),
+        'status':           job['status'],
+        'progress':         job['progress'],
+        'strategy':         job.get('strategy', ''),
+        'speed':            job.get('speed', ''),
+        'eta':              job.get('eta', ''),
+        'error':            job.get('error'),
+        'filename':         job.get('filename'),
+        'srt_ready':        bool(job.get('srt_path') and os.path.exists(job.get('srt_path', ''))),
+        'caption_progress': job.get('caption_progress', 0),
+        'caption_stage':    job.get('caption_stage', ''),
     }
     if job['status'] == 'done':
         response['file_size'] = _human_size(job.get('file_size', 0))
@@ -666,6 +868,23 @@ def download(request, job_id: str):
         content_type=mime,
         as_attachment=True,
         filename=job['filename'],
+    )
+
+
+def download_srt(request, job_id: str):
+    with JOBS_LOCK:
+        job = JOBS.get(job_id)
+    if not job or job['status'] != 'done':
+        raise Http404
+    srt_path = job.get('srt_path')
+    if not srt_path or not os.path.exists(srt_path):
+        raise Http404
+    base_name = Path(job['filename']).stem + '.srt'
+    return FileResponse(
+        open(srt_path, 'rb'),
+        content_type='text/plain',
+        as_attachment=True,
+        filename=base_name,
     )
 
 
@@ -932,45 +1151,42 @@ VISITOR_COOKIE = 'vc_visitor_id'
 VISITOR_COOKIE_AGE = 365 * 24 * 60 * 60  # 1 year
 
 def _track_visitor(request, response):
-    """
-    Assigns a visitor ID cookie on first visit and upserts the Visitor record.
-    Call this at the end of any page-rendering view.
-    """
     visitor_id = request.COOKIES.get(VISITOR_COOKIE)
     is_new = False
-
     if not visitor_id:
         visitor_id = uuid.uuid4().hex
         is_new = True
-        response.set_cookie(
-            VISITOR_COOKIE,
-            visitor_id,
-            max_age=VISITOR_COOKIE_AGE,
-            httponly=True,
-            samesite='Lax',
-        )
+        response.set_cookie(VISITOR_COOKIE, visitor_id, max_age=VISITOR_COOKIE_AGE, httponly=True, samesite='Lax')
 
     now = _time.time()
     try:
         if is_new:
-            Visitor.objects.create(
-                visitor_id=visitor_id,
-                first_seen=now,
-                last_seen=now,
-                visit_count=1,
-            )
+            Visitor.objects.create(visitor_id=visitor_id, first_seen=now, last_seen=now, visit_count=1)
         else:
-            Visitor.objects.filter(visitor_id=visitor_id).update(
-                last_seen=now,
-                visit_count=F('visit_count') + 1,
-            )
+            Visitor.objects.filter(visitor_id=visitor_id).update(last_seen=now, visit_count=F('visit_count') + 1)
+        
+        # NEW: if user is logged in, keep their UserAccount visitor_id in sync
+        if request.user.is_authenticated:
+            UserAccount.objects.filter(user=request.user, visitor_id='').update(visitor_id=visitor_id)
     except Exception:
-        pass  # never crash a page visit over analytics
-
+        pass
     return response
 
 def pricing(request):
-    return render(request, 'converter/pricing.html')
+    credits = 0
+    free_remaining = 0
+    if request.user.is_authenticated:
+        account, _ = UserAccount.objects.get_or_create(
+            user=request.user,
+            defaults={'visitor_id': request.COOKIES.get('vc_visitor_id', '')}
+        )
+        credits = account.credits
+        free_remaining = account.get_free_remaining()
+    return render(request, 'converter/pricing.html', {
+        'credits': credits,
+        'free_remaining': free_remaining,
+        'user': request.user,
+    })
 
 
 # ── PAYMENT ───────────────────────────────────────────────────────────────────
@@ -994,9 +1210,13 @@ def payment_create(request):
     if not pack:
         return JsonResponse({'error': 'Invalid package.'}, status=400)
 
-    visitor_id = request.COOKIES.get('vc_visitor_id', '')
-    if not visitor_id:
-        return JsonResponse({'error': 'Session not found. Refresh and try again.'}, status=400)
+    if not request.user.is_authenticated:
+        return JsonResponse({'error': 'Please log in to purchase credits.'}, status=401)
+    visitor_id = ''
+    try:
+        visitor_id = request.user.account.visitor_id
+    except Exception:
+        pass
 
     # PayMongo Source type mapping
     # QR Ph covers both GCash and Maya on PayMongo
@@ -1009,6 +1229,7 @@ def payment_create(request):
 
     # Create a pending order record first
     order = models.CreditOrder.objects.create(
+        user=request.user,  
         visitor_id      = visitor_id,
         package_key     = package_key,
         credits         = pack['credits'],
@@ -1157,9 +1378,12 @@ def payment_webhook(request):
 
         # ── Credit the user's account ─────────────────────────────────────
         from django.db.models import F as _F
-        models.UserAccount.objects.filter(
-            visitor_id=order.visitor_id
-        ).update(credits=_F('credits') + order.credits)
+        
+        # New (handles both legacy visitor accounts and real user accounts):
+        if order.user_id:
+            models.UserAccount.objects.filter(user=order.user).update(credits=_F('credits') + order.credits)
+        else:
+            models.UserAccount.objects.filter(visitor_id=order.visitor_id).update(credits=_F('credits') + order.credits)
 
         # Mark order as paid
         order.status  = 'paid'
@@ -1196,3 +1420,363 @@ def _verify_webhook_signature(raw_body: bytes, signature_header: str) -> bool:
         return hmac.compare_digest(expected, signature)
     except Exception:
         return False
+
+
+def credits_status(request):
+    if not request.user.is_authenticated:
+        return JsonResponse({'credits': 0, 'free_remaining': 0})
+    account, _ = UserAccount.objects.get_or_create(
+        user=request.user,
+        defaults={'visitor_id': request.COOKIES.get('vc_visitor_id', '')}
+    )
+    return JsonResponse({
+        'credits': account.credits,
+        'free_remaining': account.get_free_remaining(),
+    })
+
+
+def google_register_start(request):
+    request.session['google_from_register'] = True
+    request.session.modified = True
+    request.session.save()
+    from allauth.socialaccount.providers.google.views import oauth2_login
+    return oauth2_login(request)
+
+def groq_chat(request):
+    """Handles both smart suggestion and assistant chat."""
+    if not request.user.is_authenticated:
+        return JsonResponse({'error': 'Login required.'}, status=401)
+
+    try:
+        body = json.loads(request.body)
+    except:
+        return JsonResponse({'error': 'Invalid JSON.'}, status=400)
+
+    mode     = body.get('mode', 'chat')
+    message  = body.get('message', '')
+    fileinfo = body.get('fileinfo', {})
+
+    if mode == 'suggest':
+        SYSTEM_PROMPT = """You are an export assistant for content creators inside a video export tool.
+        You help creators get the right settings for the platform they are posting to.
+
+        You MUST always respond with JSON only. No markdown. No extra text.
+
+        Output formats: mp4, mkv, avi, mov, webm, flv, wmv, ts, m4v, 3gp
+        Resolutions: original, 1920x1080, 1280x720, 854x480, 640x360
+        Quality: auto, high, medium, small
+        Codecs: auto, h264, h265
+
+        RULES:
+        RULES:
+        1. NEVER suggest the same format as the input file extension
+        2. The "explanation" field is your reply — be warm, enthusiastic and conversational like a helpful creative friend. Use natural language, contractions and light energy. Occasionally use a relevant emoji (🎬 📱 ✨ 🚀). Never list settings dryly — always wrap them in a friendly sentence like "YouTube it is! I've set you up with 1080p high quality MP4 — your video's gonna look great 🎬". Keep it 1-3 sentences max.
+        3. If user mentions a platform, apply its preset and confirm it in the explanation
+        4. If user asks a question without changing settings, keep current settings and just answer
+        5. If user asks to rename/change filename, put the new name (without extension) in "filename"
+        6. Always warn in explanation if file size might exceed platform limits
+
+        PLATFORM PRESETS:
+        - YouTube: mp4 + 1920x1080 + high + h264
+        - TikTok: mp4 + 1920x1080 + auto + h264
+        - Instagram / Reels: mp4 + 1920x1080 + auto + h264
+        - YouTube Shorts: mp4 + 1920x1080 + auto + h264
+        - Twitter / X: mp4 + 1920x1080 + medium + h264
+        - Discord: mp4 + 1280x720 + small + h264 (warn if file will exceed 10MB)
+        - LinkedIn: mp4 + 1920x1080 + high + h264
+        - Facebook: mp4 + 1920x1080 + auto + h264
+        - compress / make smaller: quality=small + 1280x720
+        - max quality: high + original + h265
+
+        SIZE LIMITS TO WARN ABOUT:
+        TikTok=287MB, Discord=10MB free / 50MB Nitro, Twitter=512MB, Instagram Reels=4GB
+
+        Return ONLY this JSON:
+        {"format":"mp4","resolution":"1920x1080","quality":"high","codec":"h264","filename":"","explanation":"Your conversational creator-friendly reply here."}"""
+
+        current_format = fileinfo.get('current_format', 'mp4')
+        input_ext = fileinfo.get('input_ext', '')
+        active_platform = fileinfo.get('active_platform', '')
+        user_message = f"""Suggest the best conversion settings for this file:
+- Filename: {fileinfo.get('name', 'unknown')}
+- Size: {fileinfo.get('size', 'unknown')}
+- Duration: {fileinfo.get('duration', 'unknown')} seconds
+- Video codec: {fileinfo.get('vcodec', 'unknown')}
+- Audio codec: {fileinfo.get('acodec', 'unknown')}
+- Input format: {input_ext}
+- Currently selected output format: {current_format}
+- Active platform preset: {active_platform if active_platform else 'none'}
+
+IMPORTANT: Do NOT suggest {input_ext} as the output format.
+{f"The user has already selected the {active_platform} preset — use its exact settings." if active_platform else ""}
+Return only JSON."""
+
+    else:
+        SYSTEM_PROMPT = """You are ExportReady's friendly AI export assistant — think of yourself like a knowledgeable, upbeat creative tech friend who genuinely enjoys helping creators get their videos out into the world.
+
+        You MUST always respond with JSON only. No markdown. No extra text.
+
+        Output formats: mp4, mkv, avi, mov, webm, flv, wmv, ts, m4v, 3gp
+        Resolutions: original, 1920x1080, 1280x720, 854x480, 640x360
+        Quality: auto, high, medium, small
+        Codecs: auto, h264, h265
+        Captions: true or false
+
+        PERSONALITY RULES for the "explanation" field:
+        - Be warm, enthusiastic and conversational — like a helpful friend, not a robot
+        - Use natural language, contractions, light energy (e.g. "Perfect!", "Great choice!", "You're all set!")
+        - When applying a platform preset, show excitement: "YouTube it is! I've bumped you up to 1080p high quality so your video looks stunning on the platform 🎬"
+        - When answering a settings question, be helpful and clear: "Right now you're set to MKV, original resolution, auto quality — solid lossless settings! Want me to tweak anything?"
+        - When the user just asks a question without changing settings, answer it naturally and helpfully without being robotic
+        - Keep replies concise but human — 1-3 sentences max
+        - Occasionally use a relevant emoji to add warmth (🎬 📱 ✨ 🚀) but don't overdo it
+        - NEVER say things like "Current settings: MKV, original resolution" in a dry list format — always wrap it in a friendly sentence
+
+        TECHNICAL RULES:
+        1. If the user asks for a specific format, USE THAT EXACT FORMAT
+        2. If the user asks for mkv, set format to mkv. Not webm, not mp4. mkv.
+        3. If user asks a question without changing settings, keep current settings and just answer warmly
+        4. If WhatsApp: mp4 + 854x480 + small + h264
+        5. If email: mp4 + 640x360 + small
+        6. If compress / make smaller: quality=small
+        7. If user asks to rename/change filename, put the new name (without extension) in "filename"
+        8. If user mentions captions, subtitles, transcribe — set captions to true
+        9. If user says no captions or turn off captions — set captions to false
+        10. NEVER change a setting the user did not ask you to change
+
+        Return ONLY this JSON:
+        {"format":"mkv","resolution":"original","quality":"auto","codec":"auto","filename":"","captions":false,"explanation":"Your warm, friendly, human reply here."}"""
+
+        input_ext = fileinfo.get('input_ext', '')
+        current_fmt = fileinfo.get('current_format', '')
+        user_message = f"""The user says: "{message}"
+        Current file: {fileinfo.get('name', 'unknown')} ({input_ext} format, {fileinfo.get('size', 'unknown')})
+        Current settings:
+        - Format: {current_fmt}
+        - Resolution: {fileinfo.get('current_resolution','original')}
+        - Quality: {fileinfo.get('current_quality','auto')}
+        - Codec: {fileinfo.get('current_codec','auto')}
+
+        If the user asks what the current preset or settings are, describe the above in plain English. Example: "You're set to MP4, 720p, High quality, H.264 codec."
+        If the user makes a vague follow-up like "i mean the media" or "what about the file", refer to the conversation history to understand context.
+        RULE: Do NOT suggest {input_ext} as the output format.
+        If the user mentions a platform (YouTube, TikTok, Reels, Shorts, Twitter, Discord, LinkedIn, Facebook), apply that platform's preset.
+        Return only JSON."""
+
+    try:
+        history = body.get('history', [])
+        messages = [{'role': 'system', 'content': SYSTEM_PROMPT}]
+        for turn in history[:-1]:
+            messages.append({'role': turn['role'], 'content': turn['content']})
+        messages.append({'role': 'user', 'content': user_message})
+
+        resp = http_requests.post(
+            'https://api.groq.com/openai/v1/chat/completions',
+            headers={
+                'Authorization': f"Bearer {settings.GROQ_API_KEY}",
+                'Content-Type': 'application/json',
+            },
+            json={
+                'model': 'llama-3.1-8b-instant',
+                'messages': messages,
+                'max_tokens': 400,
+                'temperature': 0.3,
+            },
+            timeout=10,
+        )
+        resp.raise_for_status()
+        content = resp.json()['choices'][0]['message']['content'].strip()
+        if content.startswith('```'):
+            content = content.split('```')[1]
+            if content.startswith('json'):
+                content = content[4:]
+        result = json.loads(content)
+        return JsonResponse(result)
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+    
+
+def landing_page(request):
+    if request.user.is_authenticated:
+        return redirect('index')
+    return render(request, 'converter/landing_page.html')
+
+
+def thumbnail(request, job_id):
+    with JOBS_LOCK:
+        job = JOBS.get(job_id)
+
+    if not job:
+        raise Http404
+
+    video_path = job.get('output')
+    if not video_path or not os.path.exists(video_path):
+        raise Http404
+
+    thumb_path = video_path + '_thumb.jpg'
+
+    if not os.path.exists(thumb_path):
+        try:
+            subprocess.run([
+                'ffmpeg', '-y',
+                '-ss', '00:00:02',
+                '-i', video_path,
+                '-vframes', '1',
+                '-q:v', '3',
+                '-vf', 'scale=480:-1',
+                thumb_path
+            ], timeout=15, capture_output=True)
+        except Exception:
+            raise Http404
+
+    if not os.path.exists(thumb_path):
+        raise Http404
+
+    return FileResponse(open(thumb_path, 'rb'), content_type='image/jpeg')
+
+@login_required
+def export_history(request):
+    """Returns JSON data for the History Modal (no full HTML rendering)"""
+    import datetime
+
+    raw_records = JobRecord.objects.filter(user=request.user).order_by('-created_at')[:50]
+
+    records = []
+    for r in raw_records:
+        records.append({
+            'input_name':    r.input_name,
+            'input_ext':     r.input_ext or 'unknown',
+            'output_format': r.output_format.upper() if r.output_format else '—',
+            'file_size':     r.file_size,
+            'status':        r.status,
+            'date':          datetime.datetime.fromtimestamp(r.created_at).strftime('%b %d, %Y') 
+                             if r.created_at else '—',
+        })
+
+    return JsonResponse({'records': records})
+
+@csrf_exempt
+@require_POST
+@login_required
+def import_drive(request):
+    import urllib.request
+    import urllib.error
+
+    try:
+        body = json.loads(request.body)
+    except:
+        return JsonResponse({'error': 'Invalid request.'}, status=400)
+
+    file_id      = body.get('file_id', '')
+    output_format = body.get('output_format', 'mp4').lower().strip('.')
+
+    if not file_id:
+        return JsonResponse({'error': 'No file ID provided.'}, status=400)
+
+    if output_format not in SUPPORTED_OUTPUT:
+        return JsonResponse({'error': f'Unsupported output format.'}, status=400)
+
+    # Google Drive direct download URL
+    download_url = f'https://drive.google.com/uc?export=download&id={file_id}'
+
+    try:
+        req = urllib.request.Request(download_url, headers={'User-Agent': 'Mozilla/5.0'})
+        response = urllib.request.urlopen(req, timeout=30)
+
+        # Try to get filename from headers
+        content_disp = response.headers.get('Content-Disposition', '')
+        filename = 'drive_file'
+        if 'filename=' in content_disp:
+            filename = content_disp.split('filename=')[-1].strip('"\'')
+        if not filename or filename == 'drive_file':
+            filename = f'drive_{file_id[:8]}.mp4'
+
+        input_ext = Path(filename).suffix.lower()
+        if input_ext not in SUPPORTED_INPUT:
+            input_ext = '.mp4'
+
+        # Check file size from headers
+        content_length = response.headers.get('Content-Length')
+        file_size_bytes = int(content_length) if content_length else 0
+
+        # Tier check
+        account, _ = UserAccount.objects.get_or_create(
+            user=request.user,
+            defaults={'visitor_id': ''}
+        )
+        if file_size_bytes > 0:
+            allowed, reason, is_paid = account.can_convert(file_size_bytes)
+            if not allowed:
+                return JsonResponse({'error': reason}, status=403)
+
+        # Save the downloaded file
+        job_id     = uuid.uuid4().hex
+        upload_dir = Path(settings.MEDIA_ROOT) / 'uploads'
+        output_dir = Path(settings.MEDIA_ROOT) / 'converted'
+        upload_dir.mkdir(parents=True, exist_ok=True)
+        output_dir.mkdir(parents=True, exist_ok=True)
+
+        out_ext     = SUPPORTED_OUTPUT[output_format]['ext']
+        input_path  = upload_dir / f'{job_id}{input_ext}'
+        output_path = output_dir / f'{job_id}{out_ext}'
+
+        CHUNK = 4 * 1024 * 1024
+        actual_size = 0
+        with open(input_path, 'wb') as f:
+            while True:
+                chunk = response.read(CHUNK)
+                if not chunk:
+                    break
+                f.write(chunk)
+                actual_size += len(chunk)
+
+    except urllib.error.URLError as e:
+        return JsonResponse({'error': f'Could not download file: {str(e)}'}, status=502)
+    except Exception as e:
+        return JsonResponse({'error': f'Drive import failed: {str(e)}'}, status=500)
+
+    output_filename = Path(filename).stem + out_ext
+
+    pause_event  = threading.Event()
+    cancel_event = threading.Event()
+    pause_event.set()
+
+    with JOBS_LOCK:
+        JOBS[job_id] = {
+            'status':        'queued',
+            'progress':      0,
+            'strategy':      'Waiting for slot…',
+            'speed':         '', 'eta':  '',
+            'input':         str(input_path),
+            'output':        str(output_path),
+            'output_format': output_format,
+            'filename':      output_filename,
+            'input_name':    filename,
+            'error':         None,
+            'created_at':    time.time(),
+            'resolution':    'original',
+            'quality':       'auto',
+            'codec_pref':    'auto',
+            'captions':      False,
+            'caption_style': 'soft',
+            'srt_path':      None,
+            'user_id':       request.user.id,
+        }
+        JOB_PAUSE[job_id]  = pause_event
+        JOB_CANCEL[job_id] = cancel_event
+
+    # Deduct credit/free usage
+    allowed, reason, is_paid = account.can_convert(actual_size)
+    if is_paid:
+        UserAccount.objects.filter(user=request.user).update(credits=F('credits') - 1)
+    else:
+        UserAccount.objects.filter(user=request.user).update(free_used_month=F('free_used_month') + 1)
+
+    thread = threading.Thread(target=_convert, args=(job_id,), daemon=True)
+    thread.start()
+
+    return JsonResponse({
+        'job_id':    job_id,
+        'filename':  output_filename,
+        'file_size':_human_size(actual_size) if actual_size else '—',  # note: use _human_size
+    })

@@ -1,0 +1,369 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ExportReady — Perfect Export Settings for Every Platform</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<!-- Remove Syne, replace with Manrope -->
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="{% static 'assets/css/landing.css' %}">
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <a class="nav-logo" href="#">Export<em>Ready</em></a>
+  <div class="nav-links">
+    <a href="#features">Features</a>
+    <a href="#platforms">Platforms</a>
+    <a href="#pricing">Pricing</a>
+  </div>
+  <a href="/login/" class="nav-sign-in">Sign In</a>
+  <a href="/login/" class="nav-cta">Start Free →</a>
+  <button class="nav-hamburger" id="hamburger" aria-label="Toggle menu">
+    <span></span><span></span><span></span>
+  </button>
+</nav>
+
+<!-- Mobile Drawer -->
+<nav class="nav-drawer" id="navDrawer">
+  <a href="#features" class="drawer-link">Features</a>
+  <a href="#platforms" class="drawer-link">Platforms</a>
+  <a href="#pricing" class="drawer-link">Pricing</a>
+  <a href="/login/" class="drawer-link">Sign In</a>
+  <a href="/login/" class="drawer-cta">Start Free →</a>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-grid"></div>
+  <div class="hero-eyebrow">For Creators · AI-Powered · GPU-Fast</div>
+  <h1>
+    Export once.<br>
+    <span class="accent">Upload everywhere.</span><br>
+    <span class="dim">Perfectly.</span>
+  </h1>
+  <p class="hero-sub">
+    Drop your video. Tell us where you're uploading.<br>
+    The AI sets every setting — format, resolution, bitrate — automatically.
+  </p>
+  <div class="hero-actions">
+    <a href="/login/" class="btn-hero btn-hero-primary">✦ Export Your First Video Free</a>
+    <a href="#platforms" class="btn-hero btn-hero-ghost">See Platforms →</a>
+  </div>
+  <div class="hero-stats">
+    <div class="hero-stat"><div class="hero-stat-val">8</div><div class="hero-stat-label">Platforms Supported</div></div>
+    <div class="hero-stat"><div class="hero-stat-val">4 GB</div><div class="hero-stat-label">Max File Size</div></div>
+    <div class="hero-stat"><div class="hero-stat-val">GPU</div><div class="hero-stat-label">Accelerated</div></div>
+    <div class="hero-stat"><div class="hero-stat-val">0</div><div class="hero-stat-label">Installs Needed</div></div>
+  </div>
+</section>
+
+<!-- MARQUEE -->
+<div class="marquee-wrap">
+  <div class="marquee-track">
+    <div class="marquee-item hl">YouTube</div><div class="marquee-item">1080p · 4K · HDR</div>
+    <div class="marquee-item hl">TikTok</div><div class="marquee-item">Vertical · 9:16</div>
+    <div class="marquee-item hl">Instagram Reels</div><div class="marquee-item">30s · 60s · 90s</div>
+    <div class="marquee-item hl">Twitter / X</div><div class="marquee-item">Under 512 MB</div>
+    <div class="marquee-item hl">Discord</div><div class="marquee-item">Under 10 MB</div>
+    <div class="marquee-item hl">Shorts</div><div class="marquee-item">60s vertical</div>
+    <div class="marquee-item hl">LinkedIn</div><div class="marquee-item">Professional quality</div>
+    <div class="marquee-item hl">Facebook</div><div class="marquee-item">Auto-optimised</div>
+    <div class="marquee-item hl">YouTube</div><div class="marquee-item">1080p · 4K · HDR</div>
+    <div class="marquee-item hl">TikTok</div><div class="marquee-item">Vertical · 9:16</div>
+    <div class="marquee-item hl">Instagram Reels</div><div class="marquee-item">30s · 60s · 90s</div>
+    <div class="marquee-item hl">Twitter / X</div><div class="marquee-item">Under 512 MB</div>
+    <div class="marquee-item hl">Discord</div><div class="marquee-item">Under 10 MB</div>
+    <div class="marquee-item hl">Shorts</div><div class="marquee-item">60s vertical</div>
+    <div class="marquee-item hl">LinkedIn</div><div class="marquee-item">Professional quality</div>
+    <div class="marquee-item hl">Facebook</div><div class="marquee-item">Auto-optimised</div>
+  </div>
+</div>
+
+<!-- FEATURES -->
+<section class="section" id="features">
+  <div class="section-label">Why creators use this</div>
+  <h2 class="section-title">Stop guessing<br>export settings.</h2>
+  <div class="features-grid reveal">
+    <div class="feature-card">
+      <span class="feature-icon">✦</span>
+      <div class="feature-title">AI Knows Every Platform</div>
+      <p class="feature-desc">Drop your file, say "YouTube 4K" or "TikTok". The AI sets the right codec, bitrate, and resolution automatically — no manual fiddling.</p>
+      <div class="feature-tag">Claude Powered</div>
+    </div>
+    <div class="feature-card">
+      <span class="feature-icon">⚡</span>
+      <div class="feature-title">GPU Speed</div>
+      <p class="feature-desc">Hardware-accelerated encoding finishes your exports in a fraction of the time. A 4K, 10-minute video exports in under 3 minutes.</p>
+      <div class="feature-tag">H.264 · H.265</div>
+    </div>
+    <div class="feature-card">
+      <span class="feature-icon">🔒</span>
+      <div class="feature-title">Your Footage Stays Yours</div>
+      <p class="feature-desc">Files are deleted automatically after 1 hour. We never store, train on, or analyze your videos. Zero data retention.</p>
+      <div class="feature-tag">Auto-Delete</div>
+    </div>
+    <div class="feature-card">
+      <span class="feature-icon">📐</span>
+      <div class="feature-title">Size Warnings Before You Upload</div>
+      <p class="feature-desc">Before you export, the AI tells you if your file will exceed a platform's limit — TikTok 287 MB, Discord 10 MB — so you never get rejected.</p>
+      <div class="feature-tag">Pre-flight Check</div>
+    </div>
+    <div class="feature-card">
+      <span class="feature-icon">⏸</span>
+      <div class="feature-title">Pause & Resume</div>
+      <p class="feature-desc">Streaming while you export? Pause any conversion and resume exactly where it left off. No restarting from scratch.</p>
+      <div class="feature-tag">Session Persist</div>
+    </div>
+    <div class="feature-card">
+      <span class="feature-icon">🌐</span>
+      <div class="feature-title">Nothing to Install</div>
+      <p class="feature-desc">No desktop app. No plugins. No HandBrake tutorials. Open a browser tab, drop your file, export in seconds.</p>
+      <div class="feature-tag">Zero Install</div>
+    </div>
+  </div>
+</section>
+
+<!-- HOW IT WORKS -->
+<div class="how-section">
+  <div class="how-inner">
+    <div class="section-label">How it works</div>
+    <h2 class="section-title">Four steps.<br>Under a minute.</h2>
+    <div class="steps-row reveal">
+      <div class="step">
+        <div class="step-num">01</div>
+        <div class="step-title">Pick Your Platform</div>
+        <p class="step-desc">Choose YouTube, TikTok, Reels, Shorts, Twitter, Discord, LinkedIn, or Facebook. Or let the AI detect it from your filename.</p>
+      </div>
+      <div class="step">
+        <div class="step-num">02</div>
+        <div class="step-title">Drop Your Video</div>
+        <p class="step-desc">Any format up to 2 GB free — MKV, MOV, MP4, AVI. The AI reads your file and confirms the settings before exporting.</p>
+      </div>
+      <div class="step">
+        <div class="step-num">03</div>
+        <div class="step-title">Watch It Go</div>
+        <p class="step-desc">Live progress, speed readout, and time-to-completion so you know exactly when to hit upload on your platform.</p>
+      </div>
+      <div class="step">
+        <div class="step-num">04</div>
+        <div class="step-title">Download & Post</div>
+        <p class="step-desc">Grab your export. It's already sized and encoded perfectly for your platform. Just upload and you're done.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- PLATFORMS -->
+<section class="formats-section" id="platforms">
+  <div class="section-label">Platform presets</div>
+  <h2 class="section-title">Every platform.<br>Perfect settings.</h2>
+  <div class="formats-big-grid platforms-grid reveal">
+    <div class="fmt-cell">
+      <div class="fmt-ext">YT</div>
+      <div class="fmt-name">YouTube</div>
+      <div class="fmt-detail">1080p · 4K</div>
+    </div>
+    <div class="fmt-cell">
+      <div class="fmt-ext">TT</div>
+      <div class="fmt-name">TikTok</div>
+      <div class="fmt-detail">9:16 · 287MB</div>
+    </div>
+    <div class="fmt-cell">
+      <div class="fmt-ext">IG</div>
+      <div class="fmt-name">Reels</div>
+      <div class="fmt-detail">9:16 · 90s</div>
+    </div>
+    <div class="fmt-cell">
+      <div class="fmt-ext">YTS</div>
+      <div class="fmt-name">Shorts</div>
+      <div class="fmt-detail">9:16 · 60s</div>
+    </div>
+    <div class="fmt-cell">
+      <div class="fmt-ext">X</div>
+      <div class="fmt-name">Twitter/X</div>
+      <div class="fmt-detail">512MB max</div>
+    </div>
+    <div class="fmt-cell">
+      <div class="fmt-ext">DC</div>
+      <div class="fmt-name">Discord</div>
+      <div class="fmt-detail">10MB · 50MB</div>
+    </div>
+    <div class="fmt-cell">
+      <div class="fmt-ext">LI</div>
+      <div class="fmt-name">LinkedIn</div>
+      <div class="fmt-detail">16:9 · 5GB</div>
+    </div>
+    <div class="fmt-cell">
+      <div class="fmt-ext">FB</div>
+      <div class="fmt-name">Facebook</div>
+      <div class="fmt-detail">4GB max</div>
+    </div>
+  </div>
+  <p class="formats-note">Need a specific format instead? Advanced mode lets you set codec, CRF, resolution, and container manually.</p>
+</section>
+
+<!-- AI SECTION -->
+<div class="ai-section">
+  <div class="ai-inner">
+    <div class="ai-copy reveal">
+      <div class="section-label">AI Assistant</div>
+      <h2 class="section-title">Your personal<br>export expert.</h2>
+      <div class="ai-feature-list">
+        <div class="ai-feat">
+          <div class="ai-feat-icon">📎</div>
+          <div class="ai-feat-text">
+            <strong>Auto-detects platform on upload</strong>
+            Drop a file and the AI reads the metadata — resolution, aspect ratio, duration — and recommends the exact platform preset. No guessing needed.
+          </div>
+        </div>
+        <div class="ai-feat">
+          <div class="ai-feat-icon">💬</div>
+          <div class="ai-feat-text">
+            <strong>Just tell it where you're posting</strong>
+            Type "YouTube 4K", "compress for TikTok", or "make it small for Discord" and settings lock in instantly. No dropdowns to hunt through.
+          </div>
+        </div>
+        <div class="ai-feat">
+          <div class="ai-feat-icon">⚠</div>
+          <div class="ai-feat-text">
+            <strong>Warns you before you hit export</strong>
+            If your file will be too large, too long, or the wrong aspect ratio for the platform — the AI flags it before you waste time exporting.
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="ai-mockup reveal">
+      <div class="ai-mockup-header">
+        <div class="ai-dot"></div>
+        <div class="ai-mockup-title">Export AI</div>
+        <div class="ai-tag">claude · online</div>
+      </div>
+      <div class="ai-mockup-msgs">
+        <div class="mock-msg ai">
+          <div class="mock-sender">AI</div>
+          <div class="mock-bubble">Hey! Drop your video and tell me where you're posting — I'll handle the rest. ✦</div>
+        </div>
+        <div class="mock-msg user">
+          <div class="mock-sender">You</div>
+          <div class="mock-bubble">📎 vlog_final_4k.mov (2.8 GB)</div>
+        </div>
+        <div class="mock-msg ai">
+          <div class="mock-sender">AI</div>
+          <div class="mock-bubble">✦ 4K MOV detected, 18 min long. Where are you uploading this?</div>
+        </div>
+        <div class="mock-msg user">
+          <div class="mock-sender">You</div>
+          <div class="mock-bubble">YouTube and a short clip for TikTok</div>
+        </div>
+        <div class="mock-msg ai">
+          <div class="mock-sender">AI</div>
+          <div class="mock-bubble">✦ YouTube: MP4 · H.265 · 4K · CRF 18 — looks great, ~1.2 GB. For TikTok I'll need the clip trimmed to under 10 min and re-encoded to 9:16 vertical. Want me to set that up?</div>
+        </div>
+      </div>
+      <div class="ai-mockup-input">
+        <span>Where are you posting this?</span>
+        <div class="ai-mockup-send">↑</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- PRICING -->
+<section class="pricing-section" id="pricing">
+  <div class="section-label" style="justify-content:center">Pricing</div>
+  <h2 class="section-title">Start free.<br>Upgrade when ready.</h2>
+  <div class="pricing-grid pricing-grid-4 reveal">
+
+    <!-- Free -->
+    <div class="pricing-card">
+      <div class="pricing-name">Free</div>
+      <div class="pricing-price">₱0 <span>/month</span></div>
+      <p class="pricing-desc">For casual creators. No credit card required.</p>
+      <div class="pricing-perks">
+        <div class="pricing-perk"><span class="perk-check">✦</span> 20 exports / month</div>
+        <div class="pricing-perk"><span class="perk-check">✦</span> Up to 2 GB per file</div>
+        <div class="pricing-perk"><span class="perk-check">✦</span> All 8 platform presets</div>
+        <div class="pricing-perk"><span class="perk-check">✦</span> AI assistant included</div>
+        <div class="pricing-perk"><span class="perk-check">✦</span> Files deleted after 1 hr</div>
+      </div>
+    </div>
+
+    <!-- Starter -->
+    <div class="pricing-card">
+      <div class="pricing-name">Starter</div>
+      <div class="pricing-price">₱49 <span>one-time</span></div>
+      <p class="pricing-desc">For creators who post occasionally. Credits never expire.</p>
+      <div class="pricing-perks">
+        <div class="pricing-perk"><span class="perk-check">✦</span> 20 credits</div>
+        <div class="pricing-perk"><span class="perk-check">✦</span> Up to 4 GB per file</div>
+        <div class="pricing-perk"><span class="perk-check">✦</span> GPU acceleration</div>
+        <div class="pricing-perk"><span class="perk-check">✦</span> All 8 platform presets</div>
+        <div class="pricing-perk"><span class="perk-check">✦</span> Credits never expire</div>
+      </div>
+    </div>
+
+    <!-- Standard — featured -->
+    <div class="pricing-card featured">
+      <div class="pricing-badge">⚡ Best Value</div>
+      <div class="pricing-name">Standard</div>
+      <div class="pricing-price">₱99 <span>one-time</span></div>
+      <p class="pricing-desc">For regular creators. Buy once, post whenever.</p>
+      <div class="pricing-perks">
+        <div class="pricing-perk"><span class="perk-check">✦</span> 50 credits</div>
+        <div class="pricing-perk"><span class="perk-check">✦</span> Up to 4 GB per file</div>
+        <div class="pricing-perk"><span class="perk-check">✦</span> GPU-accelerated H.265</div>
+        <div class="pricing-perk"><span class="perk-check">✦</span> Priority queue</div>
+        <div class="pricing-perk"><span class="perk-check">✦</span> Credits never expire</div>
+      </div>
+    </div>
+
+    <!-- Pro -->
+    <div class="pricing-card">
+      <div class="pricing-name">Pro</div>
+      <div class="pricing-price">₱199 <span>one-time</span></div>
+      <p class="pricing-desc">For daily creators and heavy uploaders.</p>
+      <div class="pricing-perks">
+        <div class="pricing-perk"><span class="perk-check">✦</span> 120 credits</div>
+        <div class="pricing-perk"><span class="perk-check">✦</span> Up to 4 GB per file</div>
+        <div class="pricing-perk"><span class="perk-check">✦</span> GPU-accelerated H.265</div>
+        <div class="pricing-perk"><span class="perk-check">✦</span> Priority queue</div>
+        <div class="pricing-perk"><span class="perk-check">✦</span> Credits never expire</div>
+      </div>
+    </div>
+
+  </div>
+  <p style="text-align:center;font-family:var(--mono);font-size:10px;color:var(--muted);margin-top:16px;">
+    🇵🇭 Prices in Philippine Peso · GCash & Maya accepted · No subscriptions
+  </p>
+</section>
+
+<!-- CTA -->
+<div class="cta-section reveal">
+  <h2 class="cta-title">Ready to<br><span style="color:var(--accent)">post?</span></h2>
+  <p class="cta-sub">Free account. No installs. No credit card.<br>Your first export takes under 60 seconds.</p>
+  <div class="cta-actions">
+    <a href="/login/" class="btn-hero btn-hero-primary">✦ Export Your First Video Free</a>
+    <a href="/login/" class="btn-hero btn-hero-ghost">Sign In →</a>
+  </div>
+</div>
+
+<!-- FOOTER -->
+<footer>
+  <a class="footer-logo" href="#">Export<em>Ready</em></a>
+  <div class="footer-links">
+    <a href="#features">Features</a>
+    <a href="#platforms">Platforms</a>
+    <a href="/pricing/">Pricing</a>
+    <a href="/login/">Sign In</a>
+    <a href="/register/">Register</a>
+  </div>
+  <div class="footer-copy">Files deleted after 1 hour · Privacy first · Built for creators</div>
+</footer>
+
+<script src="{% static 'assets/js/landing.js' %}"></script>
+</body>
+</html>

@@ -2,708 +2,13 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Video Converter</title>
-<link rel="icon" type="image/png" href="{% static 'converter/converter-logo.png' %}">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
-<style>
-  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
-  :root {
-    --bg:           #080808;
-    --surface:      #0f0f0f;
-    --surface2:     #141414;
-    --surface3:     #1a1a1a;
-    --border:       #2a2a2a;
-    --border-mid:   #333333;
-    --border-bright:#484848;
-    --accent:       #d4ff00;
-    --accent-dim:   #a8cc00;
-    --accent-glow:  rgba(212,255,0,0.12);
-    --accent-soft:  rgba(212,255,0,0.08);
-    --text:         #f0f0f0;
-    --text-mid:     #c8c8c8;
-    --muted:        #888888;
-    --danger:       #ff5555;
-    --danger-soft:  rgba(255,85,85,0.10);
-    --success:      #00e676;
-    --success-soft: rgba(0,230,118,0.10);
-    --warning:      #ffbb00;
-    --warning-soft: rgba(255,187,0,0.10);
-    --mono: 'JetBrains Mono', monospace;
-    --sans: 'Syne', sans-serif;
-  }
-
-  html, body {
-    min-height: 100%;
-    background: var(--bg);
-    color: var(--text);
-    font-family: var(--sans);
-    overflow-x: hidden;
-  }
-
-  body::before {
-    content: '';
-    position: fixed; inset: 0;
-    background: repeating-linear-gradient(
-      0deg,
-      transparent,
-      transparent 3px,
-      rgba(255,255,255,0.008) 3px,
-      rgba(255,255,255,0.008) 4px
-    );
-    pointer-events: none;
-    z-index: 9999;
-  }
-
-  body::after {
-    content: '';
-    position: fixed;
-    top: -200px; right: -200px;
-    width: 500px; height: 500px;
-    background: radial-gradient(circle, rgba(212,255,0,0.04) 0%, transparent 70%);
-    pointer-events: none;
-    z-index: 0;
-  }
-
-  .page {
-    min-height: 100vh;
-    display: grid;
-    grid-template-rows: auto 1fr auto;
-    max-width: 960px;
-    margin: 0 auto;
-    padding: 0 28px;
-    position: relative;
-    z-index: 1;
-  }
-
-  /* ── HEADER ── */
-  header {
-    padding: 32px 0 28px;
-    border-bottom: 1px solid var(--border-mid);
-    display: flex;
-    align-items: center;
-    gap: 16px;
-  }
-
-  .logo-img {
-    height: 44px;
-    width: auto;
-    flex-shrink: 0;
-  }
-
-  .logo-wrap { display: flex; align-items: center; gap: 14px; min-width: 0; }
-
-  .logo-text {
-    font-family: var(--sans);
-    font-weight: 800;
-    font-size: clamp(18px, 3.5vw, 36px);
-    letter-spacing: -0.04em;
-    line-height: 1;
-    color: var(--text);
-    white-space: nowrap;
-  }
-  .logo-text em { color: var(--accent); font-style: normal; }
-
-  .header-right {
-    margin-left: auto;
-    display: flex;
-    align-items: center;
-    gap: 20px;
-    flex-shrink: 0;
-  }
-
-  .gpu-pill {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    font-family: var(--mono);
-    font-size: 9px;
-    font-weight: 600;
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
-    color: var(--text-mid);
-    border: 1px solid var(--border-mid);
-    padding: 6px 12px;
-    background: var(--surface);
-    white-space: nowrap;
-  }
-  .pulse-dot {
-    width: 5px; height: 5px;
-    border-radius: 50%;
-    background: var(--accent);
-    flex-shrink: 0;
-    animation: pulse 2s ease-in-out infinite;
-  }
-  @keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.4;transform:scale(0.8)} }
-
-  /* ── MAIN ── */
-  main { padding: 28px 0 56px; }
-
-  /* ── SECTION LABELS ── */
-  .section-header {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    margin-bottom: 14px;
-  }
-  .section-num {
-    font-family: var(--mono);
-    font-size: 9px;
-    font-weight: 700;
-    color: var(--bg);
-    background: var(--muted);
-    width: 18px; height: 18px;
-    display: flex; align-items: center; justify-content: center;
-    flex-shrink: 0;
-  }
-  .section-num.active { background: var(--accent); color: var(--bg); }
-  .section-title-text {
-    font-family: var(--mono);
-    font-size: 9px;
-    font-weight: 700;
-    letter-spacing: 0.2em;
-    text-transform: uppercase;
-    color: var(--text-mid);
-  }
-  .section-line { flex: 1; height: 1px; background: var(--border-mid); }
-
-  /* ── SETTINGS CARD ── */
-  .settings-card {
-    background: var(--surface);
-    border: 1px solid var(--border-mid);
-    padding: 18px 20px;
-    margin-bottom: 28px;
-  }
-
-  .settings-grid {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr) auto;
-    gap: 14px;
-    align-items: end;
-  }
-
-  .setting-group { display: flex; flex-direction: column; gap: 7px; }
-  .setting-label {
-    font-family: var(--mono);
-    font-size: 8px;
-    font-weight: 700;
-    letter-spacing: 0.18em;
-    text-transform: uppercase;
-    color: var(--text-mid);
-  }
-
-  .setting-select {
-    font-family: var(--mono);
-    font-size: 12px;
-    font-weight: 500;
-    background: var(--bg);
-    color: var(--text);
-    border: 1px solid var(--border-bright);
-    padding: 9px 12px;
-    cursor: pointer;
-    outline: none;
-    appearance: none;
-    -webkit-appearance: none;
-    letter-spacing: 0.02em;
-    width: 100%;
-    transition: border-color 0.15s, background 0.15s;
-  }
-  .setting-select:hover { border-color: var(--text-mid); }
-  .setting-select:focus { border-color: var(--accent); background: var(--surface2); }
-  #outputFormat { color: var(--accent); font-weight: 700; letter-spacing: 0.06em; }
-
-  /* ── RECONNECT BANNER ── */
-  .reconnect-banner {
-    display: none;
-    align-items: center;
-    gap: 14px;
-    background: var(--surface);
-    border: 1px solid var(--border-mid);
-    border-left: 3px solid var(--accent);
-    padding: 14px 18px;
-    margin-bottom: 24px;
-    cursor: pointer;
-    transition: border-color 0.15s, background 0.15s;
-  }
-  .reconnect-banner:hover { background: var(--surface2); border-color: var(--accent); }
-  .reconnect-banner.active { display: flex; }
-  .reconnect-spin { font-size: 18px; flex-shrink: 0; animation: spin 2s linear infinite; }
-  @keyframes spin { to { transform: rotate(360deg); } }
-  .reconnect-info { flex: 1; min-width: 0; }
-  .reconnect-title {
-    font-family: var(--mono); font-size: 10px; font-weight: 700;
-    color: var(--accent); letter-spacing: 0.08em; text-transform: uppercase;
-    margin-bottom: 3px;
-  }
-  .reconnect-sub {
-    font-family: var(--mono); font-size: 10px; color: var(--text-mid);
-    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-  }
-  .reconnect-sub strong { color: var(--text); }
-  .reconnect-dismiss {
-    font-family: var(--mono); font-size: 9px; font-weight: 700;
-    letter-spacing: 0.1em; text-transform: uppercase;
-    color: var(--text-mid);
-    padding: 6px 10px;
-    border: 1px solid var(--border-mid); background: transparent; cursor: pointer;
-    transition: all 0.1s; flex-shrink: 0;
-  }
-  .reconnect-dismiss:hover { color: var(--text); border-color: var(--border-bright); }
-
-  /* ── DROP ZONE ── */
-  .drop-zone {
-    background: var(--surface);
-    border: 1px solid var(--border-mid);
-    padding: 0;
-    text-align: center;
-    cursor: pointer;
-    outline: none;
-    margin-bottom: 28px;
-    transition: border-color 0.2s, background 0.2s;
-    position: relative;
-    overflow: hidden;
-  }
-  .drop-zone::before {
-    content: '';
-    position: absolute; inset: 0;
-    background: linear-gradient(135deg, var(--accent-soft) 0%, transparent 60%);
-    opacity: 0;
-    transition: opacity 0.2s;
-    pointer-events: none;
-  }
-  .drop-zone:hover, .drop-zone.dragover { border-color: var(--accent); }
-  .drop-zone:hover::before, .drop-zone.dragover::before { opacity: 1; }
-  .drop-zone.dragover { background: var(--surface2); }
-  .drop-zone.dragover .drop-inner { transform: scale(0.99); }
-
-  .drop-inner {
-    padding: 56px 32px 48px;
-    transition: transform 0.2s;
-    position: relative;
-    z-index: 1;
-  }
-
-  .drop-icon-wrap {
-    width: 64px; height: 64px;
-    background: var(--surface2);
-    border: 1px solid var(--border-bright);
-    display: flex; align-items: center; justify-content: center;
-    margin: 0 auto 20px;
-    font-size: 28px;
-    transition: background 0.2s, border-color 0.2s, transform 0.2s;
-  }
-  .drop-zone:hover .drop-icon-wrap { background: var(--surface3); border-color: var(--accent); transform: translateY(-2px); }
-  .drop-zone.dragover .drop-icon-wrap { background: var(--accent-glow); border-color: var(--accent); }
-
-  .drop-headline {
-    font-family: var(--sans);
-    font-weight: 800;
-    font-size: clamp(16px, 4vw, 20px);
-    letter-spacing: -0.03em;
-    margin-bottom: 6px;
-    color: var(--text);
-  }
-  .drop-sub {
-    font-family: var(--mono);
-    font-size: 10px;
-    color: var(--text-mid);
-    margin-bottom: 20px;
-    letter-spacing: 0.05em;
-  }
-
-  .drop-divider {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    max-width: 280px;
-    margin: 0 auto 20px;
-  }
-  .drop-divider::before, .drop-divider::after {
-    content: ''; flex: 1; height: 1px; background: var(--border-mid);
-  }
-  .drop-divider span {
-    font-family: var(--mono); font-size: 9px;
-    letter-spacing: 0.15em; color: var(--text-mid); text-transform: uppercase;
-  }
-
-  .btn-browse {
-    display: inline-flex; align-items: center; gap: 8px;
-    font-family: var(--mono); font-size: 10px; font-weight: 700;
-    letter-spacing: 0.12em; text-transform: uppercase;
-    padding: 11px 24px;
-    border: 1px solid var(--border-bright);
-    color: var(--text-mid);
-    background: transparent; cursor: pointer;
-    transition: all 0.15s;
-  }
-  .btn-browse:hover { border-color: var(--accent); color: var(--accent); }
-
-  .format-chips {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 6px;
-    justify-content: center;
-    margin-top: 24px;
-    padding-top: 24px;
-    border-top: 1px solid var(--border-mid);
-    max-width: 560px;
-    margin-left: auto; margin-right: auto;
-  }
-  .chip {
-    font-family: var(--mono); font-size: 9px; font-weight: 700;
-    letter-spacing: 0.1em;
-    color: var(--text-mid);
-    border: 1px solid var(--border-bright);
-    padding: 4px 9px;
-    transition: all 0.1s;
-    cursor: pointer;
-  }
-  .chip:hover { border-color: var(--accent); color: var(--accent); }
-
-  #fileInput { display: none; }
-
-  /* ── CONVERSION PANEL ── */
-  .panel {
-    display: none;
-    border: 1px solid var(--border-mid);
-    background: var(--surface);
-    margin-bottom: 28px;
-    animation: fadeIn 0.2s ease;
-  }
-  @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
-  .panel.active { display: block; }
-
-  .panel-header {
-    padding: 14px 18px;
-    border-bottom: 1px solid var(--border-mid);
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    background: var(--surface2);
-    flex-wrap: wrap;
-  }
-  .file-icon { font-size: 16px; flex-shrink: 0; }
-  .panel-filename {
-    font-family: var(--mono); font-size: 12px; font-weight: 500;
-    flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-    color: var(--text); min-width: 0;
-  }
-  .conversion-badge {
-    font-family: var(--mono); font-size: 9px; font-weight: 700;
-    letter-spacing: 0.1em; text-transform: uppercase;
-    background: var(--accent); color: #000;
-    padding: 3px 8px;
-    flex-shrink: 0;
-  }
-  .panel-filesize {
-    font-family: var(--mono); font-size: 10px;
-    color: var(--text-mid);
-    flex-shrink: 0;
-  }
-
-  .panel-body { padding: 20px 18px; }
-
-  .complete-banner {
-    display: none;
-    align-items: center;
-    gap: 14px;
-    background: var(--success-soft);
-    border: 1px solid rgba(0,230,118,0.25);
-    border-left: 3px solid var(--success);
-    padding: 14px 18px;
-    margin-bottom: 20px;
-  }
-  .complete-banner.active { display: flex; }
-  .complete-icon { font-size: 22px; flex-shrink: 0; }
-  .complete-title { font-weight: 700; font-size: 14px; color: var(--success); letter-spacing: -0.01em; }
-  .complete-sub { font-family: var(--mono); font-size: 10px; color: var(--text-mid); margin-top: 2px; }
-
-  .meta-row {
-    display: flex;
-    align-items: center;
-    gap: 0;
-    margin-bottom: 16px;
-    min-height: 24px;
-    flex-wrap: wrap;
-    gap: 8px;
-  }
-  .strategy-pill {
-    font-family: var(--mono); font-size: 10px; font-weight: 600;
-    color: var(--accent);
-    background: var(--accent-soft);
-    border: 1px solid rgba(212,255,0,0.2);
-    padding: 4px 10px;
-    letter-spacing: 0.04em;
-  }
-  .stats-group { display: flex; gap: 0; margin-left: auto; flex-wrap: wrap; }
-  .stat-chip {
-    font-family: var(--mono); font-size: 10px; color: var(--text-mid);
-    padding: 4px 10px;
-    border: 1px solid var(--border-mid);
-    border-left: none;
-  }
-  .stat-chip:first-child { border-left: 1px solid var(--border-mid); }
-  .stat-chip strong { color: var(--text); }
-
-  .progress-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: baseline;
-    margin-bottom: 10px;
-  }
-  .status-label {
-    font-family: var(--mono); font-size: 10px; font-weight: 700;
-    letter-spacing: 0.15em; text-transform: uppercase;
-  }
-  .status-label.queued    { color: var(--text-mid); }
-  .status-label.uploading { color: var(--text); }
-  .status-label.converting { color: var(--accent); }
-  .status-label.paused    { color: var(--warning); }
-  .status-label.done      { color: var(--success); }
-  .status-label.error     { color: var(--danger); }
-  .status-label.cancelled { color: var(--text-mid); }
-
-  .status-pct {
-    font-family: var(--mono); font-size: clamp(28px, 8vw, 36px); font-weight: 700;
-    color: var(--accent); line-height: 1; letter-spacing: -0.03em;
-  }
-
-  .progress-track {
-    height: 8px;
-    background: var(--border-mid);
-    margin-bottom: 6px;
-    overflow: hidden;
-    border-radius: 1px;
-    position: relative;
-  }
-  .progress-fill {
-    height: 100%;
-    background: var(--accent);
-    width: 0%;
-    transition: width 0.5s cubic-bezier(0.4,0,0.2,1);
-    border-radius: 1px;
-    position: relative;
-  }
-  .progress-fill::after {
-    content: '';
-    position: absolute; inset: 0;
-    background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.3) 50%, transparent 100%);
-    animation: shimmer 2s infinite;
-    opacity: 0;
-    transition: opacity 0.3s;
-  }
-  .progress-fill.converting-fill::after { opacity: 1; }
-  @keyframes shimmer { 0% { transform: translateX(-100%); } 100% { transform: translateX(100%); } }
-
-  .progress-fill.paused    { background: var(--warning); }
-  .progress-fill.done-fill { background: var(--success); }
-  .progress-fill.indeterminate { width: 30% !important; animation: slide 1.4s ease-in-out infinite; }
-  @keyframes slide { 0% { transform: translateX(-130%); } 100% { transform: translateX(430%); } }
-
-  .progress-sub {
-    display: flex; justify-content: space-between;
-    font-family: var(--mono); font-size: 9px; color: var(--text-mid);
-    letter-spacing: 0.06em; margin-bottom: 20px;
-    min-height: 14px;
-  }
-
-  .actions { display: flex; gap: 8px; flex-wrap: wrap; }
-  .btn {
-    font-family: var(--mono); font-size: 10px; font-weight: 700;
-    letter-spacing: 0.1em; text-transform: uppercase;
-    padding: 10px 16px; border: 1px solid;
-    cursor: pointer; text-decoration: none;
-    display: inline-flex; align-items: center; gap: 7px;
-    transition: background 0.12s, color 0.12s, border-color 0.12s;
-    background: transparent;
-  }
-  .btn-primary { border-color: var(--accent); color: #000; background: var(--accent); }
-  .btn-primary:hover { background: var(--accent-dim); border-color: var(--accent-dim); }
-  .btn-ghost   { border-color: var(--border-bright); color: var(--text-mid); }
-  .btn-ghost:hover { border-color: var(--text); color: var(--text); }
-  .btn-pause   { border-color: var(--warning); color: var(--warning); }
-  .btn-pause:hover { background: var(--warning-soft); }
-  .btn-pause.resumed { border-color: var(--accent); color: var(--accent); }
-  .btn-pause.resumed:hover { background: var(--accent-soft); }
-  .btn-cancel  { border-color: var(--border-bright); color: var(--text-mid); }
-  .btn-cancel:hover { border-color: var(--danger); color: var(--danger); background: var(--danger-soft); }
-
-  .error-box {
-    display: none; margin-top: 16px;
-    padding: 12px 16px;
-    border: 1px solid var(--danger);
-    border-left: 3px solid var(--danger);
-    background: var(--danger-soft);
-    font-family: var(--mono); font-size: 10px;
-    color: var(--danger); line-height: 1.7;
-    word-break: break-all;
-  }
-  .error-box.active { display: block; }
-
-  /* ── FORMAT BROWSER ── */
-  .format-browser { margin-top: 44px; }
-  .format-browser-header {
-    display: flex; align-items: center; gap: 12px; margin-bottom: 12px;
-  }
-  .format-browser-label {
-    font-family: var(--mono); font-size: 9px; font-weight: 700;
-    letter-spacing: 0.2em; text-transform: uppercase; color: var(--text-mid);
-  }
-  .format-browser-line { flex: 1; height: 1px; background: var(--border-mid); }
-
-  .format-grid {
-    display: grid;
-    grid-template-columns: repeat(10, 1fr);
-    gap: 1px;
-    background: var(--border-mid);
-  }
-  .format-cell {
-    background: var(--bg);
-    padding: 12px 6px;
-    text-align: center;
-    cursor: pointer;
-    transition: background 0.1s;
-    position: relative;
-  }
-  .format-cell::after {
-    content: '';
-    position: absolute;
-    bottom: 0; left: 0; right: 0;
-    height: 2px;
-    background: var(--accent);
-    transform: scaleX(0);
-    transition: transform 0.15s;
-  }
-  .format-cell:hover { background: var(--surface); }
-  .format-cell:hover::after { transform: scaleX(1); }
-  .format-cell.selected { background: var(--surface2); }
-  .format-cell.selected::after { transform: scaleX(1); }
-  .format-cell-ext {
-    font-family: var(--mono); font-size: 10px; font-weight: 700;
-    color: var(--accent); margin-bottom: 3px; letter-spacing: 0.04em;
-  }
-  .format-cell-desc {
-    font-family: var(--mono); font-size: 8px;
-    color: var(--text-mid); letter-spacing: 0.04em;
-  }
-
-  /* ── FOOTER ── */
-  footer {
-    padding: 20px 0;
-    border-top: 1px solid var(--border-mid);
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    font-family: var(--mono);
-    font-size: 9px;
-    color: var(--text-mid);
-    letter-spacing: 0.08em;
-    flex-wrap: wrap;
-    gap: 8px;
-  }
-  .footer-left { display: flex; align-items: center; gap: 10px; }
-  .footer-dot { width: 4px; height: 4px; border-radius: 50%; background: var(--border-bright); }
-
-  /* ════════════════════════════════════════════
-     RESPONSIVE BREAKPOINTS
-     ════════════════════════════════════════════ */
-
-  /* ── TABLET (≤768px) ── */
-  @media (max-width: 768px) {
-    .page { padding: 0 20px; }
-    .settings-grid { grid-template-columns: 1fr 1fr; gap: 12px; }
-    .settings-grid .gpu-pill { display: none; }
-    .gpu-pill.header-gpu { display: none; }
-    .format-grid { grid-template-columns: repeat(5, 1fr); }
-    .drop-inner { padding: 44px 24px 36px; }
-    .drop-sub { font-size: 9px; }
-    header { padding: 24px 0 20px; gap: 12px; }
-    .logo-img { height: 38px; }
-  }
-
-  /* ── MOBILE (≤480px) ── */
-  @media (max-width: 480px) {
-    .page { padding: 0 14px; }
-    header { padding: 18px 0 16px; }
-    .logo-img { height: 32px; }
-    .logo-text { font-size: 18px; }
-    .header-right { display: none; }
-
-    .settings-grid { grid-template-columns: 1fr 1fr; gap: 10px; }
-    .setting-select { font-size: 11px; padding: 8px 10px; }
-
-    .drop-inner { padding: 36px 16px 30px; }
-    .drop-icon-wrap { width: 52px; height: 52px; font-size: 24px; margin-bottom: 16px; }
-    .drop-headline { font-size: 16px; }
-    .drop-sub { font-size: 9px; letter-spacing: 0; }
-    .btn-browse { padding: 9px 18px; font-size: 9px; }
-    .format-chips { gap: 5px; margin-top: 18px; padding-top: 18px; }
-    .chip { padding: 4px 7px; font-size: 8px; }
-
-    .format-browser { display: none; }
-
-    .panel-header { padding: 12px 14px; }
-    .panel-filename { font-size: 11px; }
-    .panel-body { padding: 16px 14px; }
-
-    .btn { padding: 9px 14px; font-size: 9px; }
-    .btn-primary { width: 100%; justify-content: center; }
-
-    .reconnect-banner { padding: 12px 14px; gap: 10px; }
-    .reconnect-dismiss { display: none; }
-
-    .stats-group { display: none; }
-
-    footer { font-size: 8px; }
-    .footer-left span:last-child { display: none; }
-    .footer-dot { display: none; }
-
-    main { padding: 20px 0 44px; }
-  }
-
-  /* ── SMALL MOBILE (≤360px) ── */
-  @media (max-width: 360px) {
-    .page { padding: 0 10px; }
-    .settings-grid { grid-template-columns: 1fr; }
-    .logo-img { height: 28px; }
-    .logo-text { font-size: 16px; }
-    .drop-inner { padding: 28px 12px 24px; }
-  }
-
-.pricing-link {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-family: var(--mono);
-  font-size: 9px;
-  font-weight: 700;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: #000;
-  border: 1px solid var(--accent);
-  padding: 6px 14px;
-  background: var(--accent);          /* solid accent fill — can't miss it */
-  text-decoration: none;
-  transition: background 0.15s, box-shadow 0.15s;
-  white-space: nowrap;
-  box-shadow: 0 0 12px rgba(212,255,0,0.35);
-  animation: pricingPulse 3s ease-in-out infinite;
-}
-.pricing-link:hover {
-  background: var(--accent-dim);
-  box-shadow: 0 0 20px rgba(212,255,0,0.55);
-}
-.pricing-link .pulse-dot {
-  background: #000;   /* dark dot on light background */
-}
-@keyframes pricingPulse {
-  0%, 100% { box-shadow: 0 0 10px rgba(212,255,0,0.3); }
-  50%       { box-shadow: 0 0 22px rgba(212,255,0,0.6); }
-}
-</style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ExportReady — Export for YouTube, TikTok & More</title>
+  <link rel="icon" type="image/png" href="{% static 'assets/img/converter-logo.png' %}">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{% static 'assets/css/converter.css' %}">
 </head>
 <body>
 <div class="page">
@@ -711,27 +16,70 @@
   <!-- ── HEADER ── -->
   <header>
     <div class="logo-wrap">
-      <img src="{% static 'converter/converter-logo.png' %}" alt="Logo" class="logo-img">
-      <div class="logo-text">Video <em>Converter</em></div>
+      <img src="{% static 'assets/img/converter-logo.png' %}" alt="Logo" class="logo-img">
+      <div class="logo-text">Export<em>Ready</em></div>
     </div>
-    <div class="header-right">
-       <a href="/pricing/" class="pricing-link">
-      <span class="pulse-dot"></span>
-      Credits & Pricing
-    </a>
-    {% if credits > 0 %}
-  <span style="font-family:var(--mono);font-size:9px;color:var(--accent);border:1px solid rgba(212,255,0,0.3);padding:6px 12px;background:var(--accent-soft)">
-    ⚡ {{ credits }} credits
-  </span>
-{% elif free_remaining > 0 %}
-  <span style="font-family:var(--mono);font-size:9px;color:var(--muted);border:1px solid var(--border-mid);padding:6px 12px;">
-    {{ free_remaining }} free left
-  </span>
-{% endif %}
+
+    <!-- Desktop nav -->
+    <nav class="header-nav">
+
+      {% if user.is_authenticated %}
+        {% if credits > 0 %}
+          <span class="credit-badge paid">⚡ {{ credits }} credits</span>
+        {% elif free_remaining > 0 %}
+          <span class="credit-badge free">{{ free_remaining }} exports left</span>
+        {% endif %}
+        <span class="user-pill">👤 {{ user.username }}</span>
+      {% endif %}
+
       <div class="gpu-pill">
         <span class="pulse-dot"></span>
-        GPU · Stream Copy · CPU
+        GPU · CPU
       </div>
+
+      <div class="nav-divider"></div>
+
+      <a href="/pricing/" class="pricing-link">
+        <span class="pulse-dot"></span>
+        Credits & Pricing
+      </a>
+
+      {% if user.is_authenticated %}
+        <a href="#" onclick="openHistoryModal(); return false;" class="nav-btn nav-btn-ghost">📋 History</a>
+        <a href="#" onclick="confirmLogout(); return false;" class="nav-btn nav-btn-danger">Sign Out</a>
+      {% else %}
+        <a href="/login/"    class="nav-btn nav-btn-ghost">Sign In</a>
+        <a href="/register/" class="nav-btn nav-btn-solid">Register</a>
+      {% endif %}
+
+    </nav>
+
+    <!-- Mobile hamburger -->
+    <button class="hamburger" id="hamburger" aria-label="Menu" onclick="toggleMenu()">
+      <span></span><span></span><span></span>
+    </button>
+
+    <!-- Mobile dropdown -->
+    <div class="mobile-menu" id="mobileMenu">
+      {% if user.is_authenticated %}
+        <div class="mobile-user-info">Signed in as <strong>{{ user.username }}</strong></div>
+        {% if credits > 0 %}
+          <div class="mobile-credits credit-badge paid" style="border:1px solid rgba(212,255,0,0.3);text-align:center">⚡ {{ credits }} credits</div>
+        {% elif free_remaining > 0 %}
+          <div class="mobile-credits credit-badge free" style="border:1px solid var(--border-mid);text-align:center">{{ free_remaining }} exports left</div>
+        {% endif %}
+        <a href="/pricing/" class="pricing-link" style="display:flex">
+          <span class="pulse-dot"></span>Credits & Pricing
+        </a>
+        <a href="#" onclick="openHistoryModal(); return false;" class="nav-btn nav-btn-ghost" style="display:block;text-align:center">📋 History</a>
+        <a href="#" onclick="confirmLogout(); return false;" class="nav-btn nav-btn-danger" style="display:block;text-align:center">Sign Out</a>
+      {% else %}
+        <a href="/pricing/" class="pricing-link" style="display:flex">
+          <span class="pulse-dot"></span>Credits & Pricing
+        </a>
+        <a href="/login/"    class="nav-btn nav-btn-ghost" style="display:block;text-align:center">Sign In</a>
+        <a href="/register/" class="nav-btn nav-btn-solid" style="display:block;text-align:center">Register Free</a>
+      {% endif %}
     </div>
   </header>
 
@@ -741,515 +89,653 @@
     <div id="reconnectBanner" class="reconnect-banner">
       <div class="reconnect-spin">🔄</div>
       <div class="reconnect-info">
-        <div class="reconnect-title">Conversion In Progress</div>
+        <div class="reconnect-title">Export In Progress</div>
         <div class="reconnect-sub">Still running: <strong id="reconnectFilename">—</strong> — tap to reconnect</div>
       </div>
       <button class="reconnect-dismiss" onclick="dismissReconnect(event)">Dismiss</button>
     </div>
 
-    <!-- ── STEP 1: SETTINGS ── -->
-    <div class="section-header">
-      <div class="section-num active" id="stepNum1">1</div>
-      <div class="section-title-text">Output Settings</div>
-      <div class="section-line"></div>
-    </div>
+    <!-- ── TWO-COLUMN LAYOUT ── -->
+    <div class="converter-layout">
 
-    <div class="settings-card">
-      <div class="settings-grid">
-        <div class="setting-group">
-          <div class="setting-label">Format</div>
-          <select id="outputFormat" class="setting-select">
-            <option value="mp4">MP4</option>
-            <option value="mkv">MKV</option>
-            <option value="avi">AVI</option>
-            <option value="mov">MOV</option>
-            <option value="webm">WEBM</option>
-            <option value="flv">FLV</option>
-            <option value="wmv">WMV</option>
-            <option value="ts">TS</option>
-            <option value="m4v">M4V</option>
-            <option value="3gp">3GP</option>
-          </select>
-        </div>
-        <div class="setting-group">
-          <div class="setting-label">Resolution</div>
-          <select id="settingRes" class="setting-select">
-            <option value="original">Original</option>
-            <option value="1920x1080">1080p</option>
-            <option value="1280x720">720p</option>
-            <option value="854x480">480p</option>
-            <option value="640x360">360p</option>
-          </select>
-        </div>
-        <div class="setting-group">
-          <div class="setting-label">Quality</div>
-          <select id="settingQuality" class="setting-select">
-            <option value="auto">Auto — CRF 18</option>
-            <option value="high">High — CRF 16</option>
-            <option value="medium">Medium — CRF 23</option>
-            <option value="small">Small — CRF 28</option>
-          </select>
-        </div>
-        <div class="setting-group">
-          <div class="setting-label">Codec</div>
-          <select id="settingCodec" class="setting-select">
-            <option value="auto">Auto (fastest)</option>
-            <option value="h264">H.264</option>
-            <option value="h265">H.265</option>
-          </select>
-        </div>
-        <div class="gpu-pill" style="align-self:end">
-          <span class="pulse-dot"></span>
-          GPU · CPU
-        </div>
-      </div>
-    </div>
+      <!-- ══ LEFT: CONVERTER COLUMN ══ -->
+      <div class="converter-col">
 
-    <!-- ── STEP 2: DROP ── -->
-    <div class="section-header">
-      <div class="section-num active" id="stepNum2">2</div>
-      <div class="section-title-text">Select Your File</div>
-      <div class="section-line"></div>
-    </div>
-    {% if free_remaining <= 1 and credits == 0 %}
-    <div style="
-      display: flex; align-items: center; justify-content: space-between;
-      gap: 12px; flex-wrap: wrap;
-      background: var(--accent-soft);
-      border: 1px solid rgba(212,255,0,0.25);
-      border-left: 3px solid var(--accent);
-      padding: 10px 16px;
-      margin-bottom: 16px;
-      font-family: var(--mono); font-size: 10px;
-    ">
-      <span style="color: var(--text-mid)">
-        <strong style="color:var(--accent)">
-          {% if free_remaining == 0 %}No free conversions left today{% else %}1 free conversion left{% endif %}
-        </strong>
-        &nbsp;· Upgrade for 4 GB files, H.265, priority GPU
-      </span>
-      <a href="/pricing/" style="
-        color: #000; background: var(--accent);
-        border: none; padding: 6px 14px;
-        font-family: var(--mono); font-size: 9px; font-weight: 700;
-        letter-spacing: 0.1em; text-transform: uppercase;
-        text-decoration: none; white-space: nowrap;
-        transition: background 0.15s;
-      ">⚡ Get Credits →</a>
-    </div>
-    {% endif %}
-    <div id="dropZone" class="drop-zone" tabindex="0" role="button" aria-label="Upload video file">
-      <div class="drop-inner">
-        <div class="drop-icon-wrap">🎬</div>
-        <div class="drop-headline">Drop your video here</div>
-      <div class="drop-sub">
-        MKV · MP4 · AVI · MOV · WEBM · and 5 more — Free: 2GB · Paid: 4GB
-      </div>
-        <div class="drop-divider"><span>or</span></div>
-        <button class="btn-browse" onclick="event.stopPropagation(); fileInput.click()">
-          📂 Browse Files
-        </button>
-        <div class="format-chips">
-          <div class="chip" onclick="event.stopPropagation(); setFormat('mp4')">MP4</div>
-          <div class="chip" onclick="event.stopPropagation(); setFormat('mkv')">MKV</div>
-          <div class="chip" onclick="event.stopPropagation(); setFormat('avi')">AVI</div>
-          <div class="chip" onclick="event.stopPropagation(); setFormat('mov')">MOV</div>
-          <div class="chip" onclick="event.stopPropagation(); setFormat('webm')">WEBM</div>
-          <div class="chip" onclick="event.stopPropagation(); setFormat('flv')">FLV</div>
-          <div class="chip" onclick="event.stopPropagation(); setFormat('wmv')">WMV</div>
-          <div class="chip" onclick="event.stopPropagation(); setFormat('ts')">TS</div>
-          <div class="chip" onclick="event.stopPropagation(); setFormat('m4v')">M4V</div>
-          <div class="chip" onclick="event.stopPropagation(); setFormat('3gp')">3GP</div>
+        <!-- STEP 1: DROP -->
+        <div class="section-header">
+          <div class="section-num active" id="stepNum1">1</div>
+          <div class="section-title-text">Drop Your Video</div>
+          <div class="section-line"></div>
         </div>
-      </div>
-    </div>
-    <input type="file" id="fileInput" accept=".mkv,.mp4,.avi,.mov,.webm,.flv,.wmv,.ts,.m4v,.3gp">
 
-    <!-- ── CONVERSION PANEL ── -->
-    <div id="panel" class="panel">
-      <div class="panel-header">
-        <span class="file-icon">🎞</span>
-        <span id="panelFilename" class="panel-filename">—</span>
-        <span id="conversionTag" class="conversion-badge">—</span>
-        <span id="panelSize" class="panel-filesize">—</span>
-      </div>
-      <div class="panel-body">
+        {% if free_remaining <= 1 and credits == 0 %}
+        <div style="
+          display: flex; align-items: center; justify-content: space-between;
+          gap: 12px; flex-wrap: wrap;
+          background: var(--accent-soft);
+          border: 1px solid rgba(212,255,0,0.25);
+          border-left: 3px solid var(--accent);
+          padding: 10px 16px;
+          margin-bottom: 16px;
+          font-family: var(--mono); font-size: 10px;
+        ">
+          <span style="color: var(--text-mid)">
+            <strong style="color:var(--accent)">
+              {% if free_remaining == 0 %}No free exports left today{% else %}1 free export left{% endif %}
+            </strong>
+            &nbsp;· Upgrade for 4 GB, H.265, GPU priority
+          </span>
+          <a href="/pricing/" style="
+            color: #fff; background: var(--accent);
+            border: none; padding: 6px 14px;
+            font-family: var(--mono); font-size: 9px; font-weight: 700;
+            letter-spacing: 0.1em; text-transform: uppercase;
+            text-decoration: none; white-space: nowrap;
+            transition: background 0.15s;
+          ">⚡ Get Credits →</a>
+        </div>
+        {% endif %}
 
-        <div id="completeBanner" class="complete-banner">
-          <div class="complete-icon">✅</div>
-          <div>
-            <div class="complete-title">Conversion Complete</div>
-            <div id="completeSubtitle" class="complete-sub">—</div>
+        <div id="dropZone" class="drop-zone" tabindex="0" role="button" aria-label="Upload video file">
+          <div class="drop-inner">
+            <div class="drop-icon-wrap">🎬</div>
+            <div class="drop-headline">Drop your video here</div>
+            <div class="drop-sub">
+              MKV · MP4 · MOV · AVI · WEBM · and more — Free: 2GB · Paid: 4GB
+            </div>
+            <div class="drop-divider"><span>or</span></div>
+
+            <!-- ── BROWSE FILES DROPDOWN ── -->
+            <div class="btn-browse-wrap" onclick="event.stopPropagation()">
+              <button class="btn-browse" onclick="toggleBrowseMenu(event)">
+                📂 Browse Files ▾
+              </button>
+              <div class="browse-dropdown" id="browseDropdown">
+                <button class="browse-option" onclick="event.stopPropagation(); closeBrowseMenu(); setTimeout(() => fileInput.click(), 50)">
+                  💻 From Device
+                </button>
+                <button class="browse-option" onclick="event.stopPropagation(); closeBrowseMenu(); setTimeout(() => openDrivePicker(), 50)">
+                  <svg width="14" height="14" viewBox="0 0 87.3 78" style="flex-shrink:0">
+                    <path d="M6.6 66.85l3.85 6.65c.8 1.4 1.95 2.5 3.3 3.3l13.75-23.8H0c0 1.55.4 3.1 1.2 4.5z" fill="#0066da"/>
+                    <path d="M43.65 25L29.9 1.2C28.55 2 27.4 3.1 26.6 4.5L1.2 48.05c-.8 1.4-1.2 2.95-1.2 4.5h27.5z" fill="#00ac47"/>
+                    <path d="M73.55 76.8c1.35-.8 2.5-1.9 3.3-3.3l1.6-2.75 7.65-13.25c.8-1.4 1.2-2.95 1.2-4.5H59.8l5.85 11.5z" fill="#ea4335"/>
+                    <path d="M43.65 25L57.4 1.2C56.05.4 54.5 0 52.9 0H34.4c-1.6 0-3.1.45-4.5 1.2z" fill="#00832d"/>
+                    <path d="M59.8 52.55H27.5L13.75 76.35c1.35.8 2.9 1.2 4.5 1.2h50.8c1.6 0 3.1-.45 4.5-1.2z" fill="#2684fc"/>
+                    <path d="M73.4 26.45l-12.65-21.9c-.8-1.4-1.95-2.5-3.3-3.3L43.65 25l16.15 27.55H87.3c0-1.55-.4-3.1-1.2-4.5z" fill="#ffba00"/>
+                  </svg>
+                  From Google Drive
+                </button>
+              </div>
+            </div>
+
+            <div class="format-chips">
+              <div class="chip" onclick="event.stopPropagation(); applyPlatformPreset('youtube')">YouTube</div>
+              <div class="chip" onclick="event.stopPropagation(); applyPlatformPreset('tiktok')">TikTok</div>
+              <div class="chip" onclick="event.stopPropagation(); applyPlatformPreset('reels')">Reels</div>
+              <div class="chip" onclick="event.stopPropagation(); applyPlatformPreset('shorts')">Shorts</div>
+              <div class="chip" onclick="event.stopPropagation(); applyPlatformPreset('twitter')">Twitter/X</div>
+              <div class="chip" onclick="event.stopPropagation(); applyPlatformPreset('discord')">Discord</div>
+              <div class="chip" onclick="event.stopPropagation(); applyPlatformPreset('linkedin')">LinkedIn</div>
+              <div class="chip" onclick="event.stopPropagation(); applyPlatformPreset('facebook')">Facebook</div>
+            </div>
+          </div>
+        </div>
+        <input type="file" id="fileInput" accept=".mkv,.mp4,.avi,.mov,.webm,.flv,.wmv,.ts,.m4v,.3gp">
+
+        <!-- CONVERSION PANEL -->
+       <!-- CONVERSION PANEL -->
+        <div id="panel" class="panel">
+          <div class="panel-header">
+            <span class="file-icon">🎞</span>
+            <span id="panelFilename" class="panel-filename">—</span>
+            <span id="conversionTag" class="conversion-badge">—</span>
+            <span id="panelSize" class="panel-filesize">—</span>
+          </div>
+          <div id="filenameEditRow" style="
+            padding: 10px 18px;
+            border-bottom: 1px solid var(--border-mid);
+            display: flex; align-items: center; gap: 8px;
+            background: var(--surface2);
+          ">
+            <span style="font-family:var(--mono);font-size:9px;color:var(--muted);white-space:nowrap;letter-spacing:0.1em;text-transform:uppercase;">Output name</span>
+            <input id="outputFilename" type="text" style="
+              flex:1; font-family:var(--mono); font-size:11px;
+              background:var(--bg); color:var(--text);
+              border:1px solid var(--border-mid); padding:6px 10px;
+              outline:none; transition:border-color 0.15s; min-width:0;
+            "
+            onfocus="this.style.borderColor='var(--accent)'"
+            onblur="this.style.borderColor='var(--border-mid)'"
+            placeholder="output filename (without extension)">
+            <span id="outputFilenameExt" style="font-family:var(--mono);font-size:11px;color:var(--accent);white-space:nowrap;">.mp4</span>
+          </div>
+
+          <!-- PANEL SPLIT: video left, progress+settings right -->
+          <div class="panel-split">
+
+            <!-- LEFT: video preview -->
+            <div class="panel-split-left" id="videoPreviewWrap" style="display:none;">
+              <div class="panel-split-left-header">
+                <span>Source Preview</span>
+                <span id="previewFileSize"></span>
+              </div>
+              <video id="videoPreviewEl"
+                  controls
+                  preload="metadata"
+                  class="panel-video"
+              ></video>
+
+              <!-- Platform chips moved under preview -->
+              <div class="panel-platform-row">
+                <div class="panel-platform-label">Post to</div>
+                <div class="platform-presets" id="platformPresetsUnder">
+                  <button class="platform-chip" onclick="applyPlatformPreset('youtube')"><span class="platform-chip-name">YouTube</span><span class="platform-chip-detail">1080p · MP4</span></button>
+                  <button class="platform-chip" onclick="applyPlatformPreset('tiktok')"><span class="platform-chip-name">TikTok</span><span class="platform-chip-detail">1080p · vertical</span></button>
+                  <button class="platform-chip" onclick="applyPlatformPreset('reels')"><span class="platform-chip-name">Reels</span><span class="platform-chip-detail">1080p · 9:16</span></button>
+                  <button class="platform-chip" onclick="applyPlatformPreset('shorts')"><span class="platform-chip-name">Shorts</span><span class="platform-chip-detail">1080p · 60s</span></button>
+                  <button class="platform-chip" onclick="applyPlatformPreset('twitter')"><span class="platform-chip-name">Twitter/X</span><span class="platform-chip-detail">1080p · 512MB</span></button>
+                  <button class="platform-chip" onclick="applyPlatformPreset('discord')"><span class="platform-chip-name">Discord</span><span class="platform-chip-detail">720p · 10MB</span></button>
+                  <button class="platform-chip" onclick="applyPlatformPreset('linkedin')"><span class="platform-chip-name">LinkedIn</span><span class="platform-chip-detail">1080p · 5GB</span></button>
+                  <button class="platform-chip" onclick="applyPlatformPreset('facebook')"><span class="platform-chip-name">Facebook</span><span class="platform-chip-detail">1080p · 4GB</span></button>
+                </div>
+              </div>
+            </div>
+
+            <!-- RIGHT: progress + settings stacked -->
+            <div class="panel-split-right">
+
+              <div class="panel-body">
+
+                <div class="meta-row">
+                  <div id="strategyTag" class="strategy-pill" style="display:none"></div>
+                  <div class="stats-group">
+                    <div class="stat-chip" id="statSpeed" style="display:none"></div>
+                    <div class="stat-chip" id="statEta"   style="display:none"></div>
+                  </div>
+                </div>
+
+                <div class="progress-header">
+                  <span id="statusLabel" class="status-label queued">Queued</span>
+                  <span id="statusPct" class="status-pct">0%</span>
+                </div>
+
+                <div class="progress-track">
+                  <div id="progressFill" class="progress-fill"></div>
+                </div>
+
+                <div class="progress-sub">
+                  <span id="statElapsed"></span>
+                </div>
+
+                <div id="errorBox" class="error-box"></div>
+                <div id="errorBox" class="error-box"></div>
+
+
+              </div>
+
+              <!-- SETTINGS inline below progress -->
+              <div id="step2Header" class="section-header panel-settings-header" style="display:none;">
+                <div class="section-num active" id="stepNum2">2</div>
+                <div class="section-title-text">Export Settings</div>
+                <div class="section-line"></div>
+              </div>
+
+              <div class="settings-card" id="settingsCard" style="display:none;">
+              <div class="settings-grid">
+                  <div class="setting-group">
+                    <div class="setting-label">Format</div>
+                    <select id="outputFormat" class="setting-select">
+                      <option value="mp4">MP4</option>
+                      <option value="mkv">MKV</option>
+                      <option value="avi">AVI</option>
+                      <option value="mov">MOV</option>
+                      <option value="webm">WEBM</option>
+                      <option value="flv">FLV</option>
+                      <option value="wmv">WMV</option>
+                      <option value="ts">TS</option>
+                      <option value="m4v">M4V</option>
+                      <option value="3gp">3GP</option>
+                    </select>
+                  </div>
+                  <div class="setting-group">
+                    <div class="setting-label">Resolution</div>
+                    <select id="settingRes" class="setting-select">
+                      <option value="original">Original</option>
+                      <option value="1920x1080">1080p</option>
+                      <option value="1280x720">720p</option>
+                      <option value="854x480">480p</option>
+                      <option value="640x360">360p</option>
+                    </select>
+                  </div>
+                  <div class="setting-group">
+                    <div class="setting-label">Quality</div>
+                    <select id="settingQuality" class="setting-select">
+                      <option value="auto">Auto — CRF 18</option>
+                      <option value="high">High — CRF 16</option>
+                      <option value="medium">Medium — CRF 23</option>
+                      <option value="small">Small — CRF 28</option>
+                    </select>
+                  </div>
+                  <div class="setting-group">
+                    <div class="setting-label">Codec</div>
+                    <select id="settingCodec" class="setting-select">
+                      <option value="auto">Auto (fastest)</option>
+                      <option value="h264">H.264</option>
+                      <option value="h265">H.265</option>
+                    </select>
+                  </div>
+                  <div class="setting-group">
+                    <div class="setting-label">Captions</div>
+                    <label class="caption-toggle-wrap">
+                      <input type="checkbox" id="settingCaptions" class="caption-checkbox">
+                      <span class="caption-toggle-track">
+                        <span class="caption-toggle-knob"></span>
+                      </span>
+                      <span class="caption-toggle-label" id="captionLabel">Off</span>
+                    </label>
+                    <div class="setting-sublabel">Auto via Whisper AI</div>
+                  </div>
+                  <div class="setting-group" id="captionStyleGroup" style="display:none">
+                    <div class="setting-label">Caption Style</div>
+                    <select id="settingCaptionStyle" class="setting-select">
+                      <option value="soft">Soft (.srt file)</option>
+                    </select>
+                    <div class="setting-sublabel">Auto via Whisper AI</div>
+                  </div>
+                  <div class="gpu-pill" style="align-self:end">
+                    <span class="pulse-dot"></span>
+                    GPU · CPU
+                  </div>
+                </div>
+              </div>
+
+            </div><!-- end .panel-split-right -->
+            </div><!-- end .panel-split -->
+          <div class="actions" id="actions" style="padding:14px 18px;border-top:1px solid var(--border-mid);background:var(--surface2);"></div>
+        </div><!-- end #panel -->
+
+        <!-- STEP 2: SETTINGS -->
+      <div id="step2Header" class="section-header" style="margin-top: 6px; margin-bottom: 8px; display:none;">
+        <div class="section-num active" id="stepNum2">2</div>
+        <div class="section-title-text">Export Settings</div>
+        <div class="section-line"></div>
+      </div>
+
+        <div class="settings-card" id="settingsCard" style="margin-bottom:0; display:none;">
+          <div class="platform-preset-row">
+            <div class="platform-preset-label">Post to</div>
+            <div class="platform-presets">
+              <button class="platform-chip" onclick="applyPlatformPreset('youtube')" title="1080p/4K · H.264 · MP4">
+                <span class="platform-chip-name">YouTube</span>
+                <span class="platform-chip-detail">1080p · MP4</span>
+              </button>
+              <button class="platform-chip" onclick="applyPlatformPreset('tiktok')" title="1080p vertical · MP4 · under 287MB">
+                <span class="platform-chip-name">TikTok</span>
+                <span class="platform-chip-detail">1080p · vertical</span>
+              </button>
+              <button class="platform-chip" onclick="applyPlatformPreset('reels')" title="1080p vertical · MP4 · under 90s">
+                <span class="platform-chip-name">Reels</span>
+                <span class="platform-chip-detail">1080p · 9:16</span>
+              </button>
+              <button class="platform-chip" onclick="applyPlatformPreset('shorts')" title="1080p vertical · MP4 · under 60s">
+                <span class="platform-chip-name">Shorts</span>
+                <span class="platform-chip-detail">1080p · 60s</span>
+              </button>
+              <button class="platform-chip" onclick="applyPlatformPreset('twitter')" title="1080p · MP4 · under 512MB">
+                <span class="platform-chip-name">Twitter/X</span>
+                <span class="platform-chip-detail">1080p · 512MB</span>
+              </button>
+              <button class="platform-chip" onclick="applyPlatformPreset('discord')" title="720p · MP4 · under 10MB free / 50MB Nitro">
+                <span class="platform-chip-name">Discord</span>
+                <span class="platform-chip-detail">720p · 10MB</span>
+              </button>
+              <button class="platform-chip" onclick="applyPlatformPreset('linkedin')" title="1080p · MP4 · up to 5GB">
+                <span class="platform-chip-name">LinkedIn</span>
+                <span class="platform-chip-detail">1080p · 5GB</span>
+              </button>
+              <button class="platform-chip" onclick="applyPlatformPreset('facebook')" title="1080p · MP4 · up to 4GB">
+                <span class="platform-chip-name">Facebook</span>
+                <span class="platform-chip-detail">1080p · 4GB</span>
+              </button>
+            </div>
+          </div>
+
+          <div class="settings-grid">
+            <div class="setting-group">
+              <div class="setting-label">Format</div>
+              <select id="outputFormat" class="setting-select">
+                <option value="mp4">MP4</option>
+                <option value="mkv">MKV</option>
+                <option value="avi">AVI</option>
+                <option value="mov">MOV</option>
+                <option value="webm">WEBM</option>
+                <option value="flv">FLV</option>
+                <option value="wmv">WMV</option>
+                <option value="ts">TS</option>
+                <option value="m4v">M4V</option>
+                <option value="3gp">3GP</option>
+              </select>
+            </div>
+            <div class="setting-group">
+              <div class="setting-label">Resolution</div>
+              <select id="settingRes" class="setting-select">
+                <option value="original">Original</option>
+                <option value="1920x1080">1080p</option>
+                <option value="1280x720">720p</option>
+                <option value="854x480">480p</option>
+                <option value="640x360">360p</option>
+              </select>
+            </div>
+            <div class="setting-group">
+              <div class="setting-label">Quality</div>
+              <select id="settingQuality" class="setting-select">
+                <option value="auto">Auto — CRF 18</option>
+                <option value="high">High — CRF 16</option>
+                <option value="medium">Medium — CRF 23</option>
+                <option value="small">Small — CRF 28</option>
+              </select>
+            </div>
+            <div class="setting-group">
+              <div class="setting-label">Codec</div>
+              <select id="settingCodec" class="setting-select">
+                <option value="auto">Auto (fastest)</option>
+                <option value="h264">H.264</option>
+                <option value="h265">H.265</option>
+              </select>
+            </div>
+            <div class="setting-group">
+              <div class="setting-label">Captions</div>
+              <label class="caption-toggle-wrap">
+                <input type="checkbox" id="settingCaptions" class="caption-checkbox">
+                <span class="caption-toggle-track">
+                  <span class="caption-toggle-knob"></span>
+                </span>
+                <span class="caption-toggle-label" id="captionLabel">Off</span>
+              </label>
+              <div class="setting-sublabel">Auto via Whisper AI</div>
+            </div>
+            <div class="setting-group" id="captionStyleGroup" style="display:none">
+              <div class="setting-label">Caption Style</div>
+              <select id="settingCaptionStyle" class="setting-select">
+                <option value="soft">Soft (.srt file)</option>
+              </select>
+              <div class="setting-sublabel">Auto via Whisper AI</div>
+            </div>
+            <div class="gpu-pill" style="align-self:end">
+              <span class="pulse-dot"></span>
+              GPU · CPU
+            </div>
           </div>
         </div>
 
-        <div class="meta-row">
-          <div id="strategyTag" class="strategy-pill" style="display:none"></div>
-          <div class="stats-group">
-            <div class="stat-chip" id="statSpeed" style="display:none"></div>
-            <div class="stat-chip" id="statEta"   style="display:none"></div>
+
+      </div><!-- end .converter-col -->
+
+      <!-- ══ RIGHT: AI CHAT COLUMN ══ -->
+      <div class="ai-chat-col" id="aiChatCol" style="display:block;">
+
+        <div class="section-header" style="margin-bottom:14px">
+          <div class="section-num active" style="width:auto;padding:0 6px;font-size:10px;">✦</div>
+          <div class="section-title-text">Export AI</div>
+          <div class="section-line"></div>
+        </div>
+
+        <!-- Teaser shown before file is dropped -->
+        <div id="aiTeaser" style="
+          background: var(--surface);
+          border: 1px solid var(--border-mid);
+          border-left: 3px solid var(--accent);
+          padding: 20px 16px;
+          display: flex;
+          flex-direction: column;
+          gap: 10px;
+        ">
+          <div style="font-family:var(--mono);font-size:9px;font-weight:700;letter-spacing:0.15em;text-transform:uppercase;color:var(--accent);">✦ Export AI</div>
+          <div style="font-family:var(--mono);font-size:11px;color:var(--text-mid);line-height:1.7;">
+            Hey! Drop your video and tell me where you're posting — I'll set everything up for you. ✦
+          </div>
+          <div style="font-family:var(--mono);font-size:9px;color:var(--muted);line-height:1.6;">
+            Auto-selects format, resolution, quality and codec based on your platform.
           </div>
         </div>
 
-        <div class="progress-header">
-          <span id="statusLabel" class="status-label queued">Queued</span>
-          <span id="statusPct" class="status-pct">0%</span>
-        </div>
+        <div class="ai-panel" id="aiPanel" style="display:none;">
+          <div class="ai-panel-header">
+            <div class="ai-online-dot"></div>
+            <div class="ai-panel-title">Export AI</div>
+            <div class="ai-model-tag">claude · online</div>
+          </div>
 
-        <div class="progress-track">
-          <div id="progressFill" class="progress-fill"></div>
-        </div>
+          <div class="ai-messages" id="chatMessages">
+            <div class="chat-msg ai">
+              <div class="chat-sender">AI</div>
+              <div class="chat-bubble">Hey! Drop your video and tell me where you're posting — I'll set everything up for you. ✦</div>
+            </div>
+          </div>
 
-        <div class="progress-sub">
-          <span id="statElapsed"></span>
-        </div>
+          <div class="ai-quick-chips" id="quickChips">
+            <button class="ai-quick-chip" onclick="sendQuick('Best settings for YouTube 1080p')">▶ YouTube</button>
+            <button class="ai-quick-chip" onclick="sendQuick('Optimise for TikTok upload')">TikTok</button>
+            <button class="ai-quick-chip" onclick="sendQuick('Export for Instagram Reels')">Reels</button>
+            <button class="ai-quick-chip" onclick="sendQuick('Make it small enough for Discord')">Discord</button>
+            <button class="ai-quick-chip" onclick="sendQuick('Best quality possible for YouTube')">⭐ Max quality</button>
+            <button class="ai-quick-chip" onclick="sendQuick('Make the file as small as possible')">🗜 Smallest</button>
+          </div>
 
-        <div class="actions" id="actions"></div>
-        <div id="errorBox" class="error-box"></div>
-      </div>
-    </div>
+          <div class="ai-input-row">
+            <input id="aiInput" type="text"
+              placeholder="Where are you posting this?"
+              onkeydown="if(event.key==='Enter') sendChat()">
+            <button class="ai-send-btn" onclick="sendChat()" title="Send">↑</button>
+          </div>
+       </div><!-- end .ai-panel -->
 
-    <!-- ── FORMAT BROWSER ── -->
-    <div class="format-browser">
-      <div class="format-browser-header">
-        <div class="format-browser-label">Supported Formats</div>
-        <div class="format-browser-line"></div>
-      </div>
-      <div class="format-grid" id="formatGrid">
-        <div class="format-cell" onclick="setFormat('mp4')"><div class="format-cell-ext">MP4</div><div class="format-cell-desc">Universal</div></div>
-        <div class="format-cell" onclick="setFormat('mkv')"><div class="format-cell-ext">MKV</div><div class="format-cell-desc">High qual</div></div>
-        <div class="format-cell" onclick="setFormat('avi')"><div class="format-cell-ext">AVI</div><div class="format-cell-desc">Legacy</div></div>
-        <div class="format-cell" onclick="setFormat('mov')"><div class="format-cell-ext">MOV</div><div class="format-cell-desc">Apple</div></div>
-        <div class="format-cell" onclick="setFormat('webm')"><div class="format-cell-ext">WEBM</div><div class="format-cell-desc">Web</div></div>
-        <div class="format-cell" onclick="setFormat('flv')"><div class="format-cell-ext">FLV</div><div class="format-cell-desc">Flash</div></div>
-        <div class="format-cell" onclick="setFormat('wmv')"><div class="format-cell-ext">WMV</div><div class="format-cell-desc">Windows</div></div>
-        <div class="format-cell" onclick="setFormat('ts')"><div class="format-cell-ext">TS</div><div class="format-cell-desc">Broadcast</div></div>
-        <div class="format-cell" onclick="setFormat('m4v')"><div class="format-cell-ext">M4V</div><div class="format-cell-desc">iTunes</div></div>
-        <div class="format-cell" onclick="setFormat('3gp')"><div class="format-cell-ext">3GP</div><div class="format-cell-desc">Mobile</div></div>
-      </div>
-    </div>
+      </div><!-- end .ai-chat-col -->
+
+    </div><!-- end .converter-layout -->
 
   </main>
 
   <footer>
-   <span>Files deleted after 1 hour</span>
-<div class="footer-dot"></div>
-<span>Privacy first</span>
+    <div class="footer-left">
+      <span>Files deleted after 1 hour</span>
+      <div class="footer-dot"></div>
+      <span>Built for creators</span>
+    </div>
   </footer>
 </div>
 
-<script>
-const dropZone         = document.getElementById('dropZone');
-const fileInput        = document.getElementById('fileInput');
-const panel            = document.getElementById('panel');
-const panelName        = document.getElementById('panelFilename');
-const panelSize        = document.getElementById('panelSize');
-const convTag          = document.getElementById('conversionTag');
-const statusLabel      = document.getElementById('statusLabel');
-const statusPct        = document.getElementById('statusPct');
-const progressFill     = document.getElementById('progressFill');
-const actions          = document.getElementById('actions');
-const errorBox         = document.getElementById('errorBox');
-const strategyTag      = document.getElementById('strategyTag');
-const statSpeed        = document.getElementById('statSpeed');
-const statEta          = document.getElementById('statEta');
-const statElapsed      = document.getElementById('statElapsed');
-const completeBanner   = document.getElementById('completeBanner');
-const completeSubtitle = document.getElementById('completeSubtitle');
-const outputFormat     = document.getElementById('outputFormat');
-const reconnectBanner  = document.getElementById('reconnectBanner');
-const reconnectFilename= document.getElementById('reconnectFilename');
-const formatGrid       = document.getElementById('formatGrid');
+<!-- ── EXPORT COMPLETE MODAL ── -->
+<div id="exportCompleteModal" style="
+  display:none; position:fixed; inset:0; z-index:10000;
+  background:rgba(0,0,0,0.85);
+  align-items:center; justify-content:center;
+  padding:20px;
+">
+  <div style="
+    background:var(--surface);
+    border:1px solid var(--border-mid);
+    border-top:3px solid var(--success);
+    padding:28px;
+    max-width:520px; width:100%;
+    animation:fadeIn 0.2s ease;
+  ">
+    <div id="completeBanner" class="complete-banner" style="margin-bottom:16px;">
+      <div class="complete-icon">✅</div>
+      <div>
+        <div class="complete-title">Export Complete</div>
+        <div id="completeSubtitle" class="complete-sub">—</div>
+      </div>
+    </div>
+    <div id="thumbPreview" class="thumb-preview">
+      <div class="thumb-header">
+        <span class="thumb-header-label">Output Preview</span>
+        <span class="thumb-header-badge">✓ Exported</span>
+      </div>
+      <div class="thumb-img-wrap">
+        <div class="thumb-loading" id="thumbLoading">
+          <div class="thumb-loading-dot"></div>
+          <div class="thumb-loading-dot"></div>
+          <div class="thumb-loading-dot"></div>
+          <span>Generating preview…</span>
+        </div>
+        <img id="thumbImg" class="thumb-img" alt="Preview frame">
+      </div>
+      <div class="thumb-footer" id="thumbFooter"></div>
+    </div>
+    <div id="sizeCompare" class="size-compare" style="margin-top:14px;"></div>
+    <div id="modalActions" style="margin-top:16px;display:flex;flex-direction:column;gap:8px;"></div>
+    <button onclick="closeExportModal()" style="
+      margin-top:10px; width:100%;
+      font-family:var(--mono);font-size:9px;font-weight:700;
+      letter-spacing:0.1em;text-transform:uppercase;
+      padding:9px;color:var(--muted);
+      border:1px solid transparent;background:transparent;cursor:pointer;
+    ">✕ Close</button>
+  </div>
+</div>
 
-let currentJobId = null;
-let pollTimer    = null;
-let elapsedTimer = null;
-let startTime    = null;
-let isPaused     = false;
+<!-- ── LOGIN PROMPT MODAL ── -->
 
-const SUPPORTED   = new Set(['.mkv','.mp4','.avi','.mov','.webm','.flv','.wmv','.ts','.m4v','.3gp']);
-const SESSION_KEY = 'vc_active_job';
-const FORMATS     = ['mp4','mkv','avi','mov','webm','flv','wmv','ts','m4v','3gp'];
+<!-- ── LOGIN PROMPT MODAL ── -->
+<div id="loginModal" style="
+  display:none; position:fixed; inset:0; z-index:10000;
+  background:rgba(0,0,0,0.85);
+  align-items:center; justify-content:center;
+  padding: 20px;
+">
+  <div style="
+    background:var(--surface);
+    border:1px solid var(--border-mid);
+    border-top: 3px solid var(--accent);
+    padding:32px 28px;
+    max-width:400px; width:100%;
+    position:relative;
+    animation: fadeIn 0.2s ease;
+  ">
+    <div style="
+      font-family:var(--mono); font-size:9px; font-weight:700;
+      letter-spacing:0.2em; text-transform:uppercase;
+      color:var(--accent); margin-bottom:12px;
+    ">Account Required</div>
 
-// ── SESSION ──
-function saveSession(jobId, filename, fmt) {
-  sessionStorage.setItem(SESSION_KEY, JSON.stringify({ jobId, filename, fmt, ts: Date.now() }));
-}
-function clearSession() { sessionStorage.removeItem(SESSION_KEY); }
+    <div style="
+      font-family:var(--sans); font-weight:800;
+      font-size:clamp(20px,5vw,26px);
+      letter-spacing:-0.03em; color:var(--text);
+      margin-bottom:8px; line-height:1.1;
+    ">Sign in to export</div>
 
-window.addEventListener('DOMContentLoaded', async () => {
-  highlightSelectedFormat();
-  const raw = sessionStorage.getItem(SESSION_KEY);
-  if (!raw) return;
-  let saved;
-  try { saved = JSON.parse(raw); } catch { clearSession(); return; }
-  if (Date.now() - saved.ts > 12 * 60 * 60 * 1000) { clearSession(); return; }
-  try {
-    const data = await fetch(`/active-job/${saved.jobId}/`).then(r => r.json());
-    if (data.error) { clearSession(); return; }
-    if (['converting','queued','paused'].includes(data.status)) {
-      reconnectFilename.textContent = saved.filename || data.input_name || saved.jobId;
-      reconnectBanner.classList.add('active');
-      reconnectBanner.addEventListener('click', () => reconnectToJob(saved, data));
-    } else if (data.status === 'done') {
-      reconnectToJob(saved, data);
-    } else { clearSession(); }
-  } catch { clearSession(); }
-});
+    <div style="
+      font-family:var(--mono); font-size:10px;
+      color:var(--muted); margin-bottom:24px; line-height:1.6;
+    ">Free account includes 20 exports/month up to 2 GB. No credit card needed.</div>
 
-async function reconnectToJob(saved, data) {
-  reconnectBanner.classList.remove('active');
-  currentJobId = saved.jobId;
-  panelName.textContent = saved.filename || data.input_name || '—';
-  panelSize.textContent = '—';
-  convTag.textContent   = saved.fmt || data.output_format?.toUpperCase() || '—';
-  completeBanner.classList.remove('active');
-  errorBox.classList.remove('active');
-  setStrategy(data.strategy || '');
-  statElapsed.textContent = 'Reconnected ↩';
-  isPaused = data.status === 'paused';
-  dropZone.style.display = 'none';
-  panel.classList.add('active');
-  if (data.status === 'done') {
-    setStatus('done', 100); showComplete(data.filename, data.file_size); clearSession();
-  } else if (data.status === 'paused') {
-    setStatus('paused', data.progress, 'Paused'); showConvertingActions(); updatePauseBtn(true); pollStatus();
-  } else {
-    setStatus(data.status, data.progress); showConvertingActions(); pollStatus();
-  }
-}
+    <div style="display:flex; flex-direction:column; gap:10px;">
+      <a href="/register/" style="
+        display:flex; align-items:center; justify-content:center; gap:8px;
+        font-family:var(--mono); font-size:11px; font-weight:700;
+        letter-spacing:0.12em; text-transform:uppercase;
+        padding:14px; background:var(--accent); color:#000;
+        border:1px solid var(--accent); text-decoration:none;
+        transition:background 0.15s;
+      ">✦ Create Free Account</a>
 
-function dismissReconnect(e) {
-  e.stopPropagation();
-  reconnectBanner.classList.remove('active');
-  clearSession();
-}
+      <a href="/login/" style="
+        display:flex; align-items:center; justify-content:center;
+        font-family:var(--mono); font-size:10px; font-weight:700;
+        letter-spacing:0.1em; text-transform:uppercase;
+        padding:12px; color:var(--text-mid);
+        border:1px solid var(--border-mid); text-decoration:none;
+        transition:all 0.15s;
+      ">→ Sign In</a>
 
-// ── FORMAT SELECTION ──
-function setFormat(fmt) {
-  outputFormat.value = fmt;
-  highlightSelectedFormat();
-}
+      <button onclick="closeLoginModal()" style="
+        font-family:var(--mono); font-size:9px; font-weight:700;
+        letter-spacing:0.1em; text-transform:uppercase;
+        padding:10px; color:var(--muted);
+        border:1px solid transparent; background:transparent;
+        cursor:pointer; transition:color 0.15s;
+      ">✕ Cancel</button>
+    </div>
+  </div>
+</div>
 
-function highlightSelectedFormat() {
-  const current = outputFormat.value;
-  formatGrid.querySelectorAll('.format-cell').forEach((cell, i) => {
-    cell.classList.toggle('selected', FORMATS[i] === current);
-  });
-  document.querySelectorAll('.chip').forEach(chip => {
-    chip.style.borderColor = chip.textContent.toLowerCase() === current ? 'var(--accent)' : '';
-    chip.style.color       = chip.textContent.toLowerCase() === current ? 'var(--accent)' : '';
-  });
-}
 
-outputFormat.addEventListener('change', highlightSelectedFormat);
+<!-- ── GOOGLE DRIVE MODAL ── -->
+<div id="driveModal" style="
+  display:none; position:fixed; inset:0; z-index:10000;
+  background:rgba(0,0,0,0.85);
+  align-items:center; justify-content:center;
+  padding:20px;
+">
+  <div style="
+    background:var(--surface);
+    border:1px solid var(--border-mid);
+    border-top:3px solid #4285f4;
+    padding:32px 28px;
+    max-width:420px; width:100%;
+    animation: fadeIn 0.2s ease;
+  ">
+    <div style="font-family:var(--mono);font-size:9px;font-weight:700;letter-spacing:0.2em;text-transform:uppercase;color:#4285f4;margin-bottom:12px;">
+      Google Drive Import
+    </div>
+    <div style="font-family:var(--sans);font-weight:800;font-size:20px;letter-spacing:-0.03em;margin-bottom:8px;">
+      Paste your Drive link
+    </div>
+    <div style="font-family:var(--mono);font-size:10px;color:var(--muted);margin-bottom:20px;line-height:1.6;">
+      Make sure the file is set to <strong>Anyone with the link</strong> can view.
+    </div>
+    <input id="driveLinkInput" type="text"
+      placeholder="https://drive.google.com/file/d/..."
+      style="
+        width:100%; font-family:var(--mono); font-size:11px;
+        background:var(--bg); color:var(--text);
+        border:1px solid var(--border-mid); padding:10px 12px;
+        outline:none; margin-bottom:16px;
+      "
+      onfocus="this.style.borderColor='#4285f4'"
+      onblur="this.style.borderColor='var(--border-mid)'"
+      onkeydown="if(event.key==='Enter') importFromDrive()">
+    <div style="display:flex;gap:8px;">
+      <button onclick="importFromDrive()" style="
+        flex:1; font-family:var(--mono); font-size:10px; font-weight:700;
+        letter-spacing:0.1em; text-transform:uppercase;
+        padding:12px; background:#4285f4; color:#fff;
+        border:1px solid #4285f4; cursor:pointer;
+      ">⬇ Import File</button>
+      <button onclick="closeDriveModal()" style="
+        font-family:var(--mono); font-size:10px; font-weight:700;
+        letter-spacing:0.1em; text-transform:uppercase;
+        padding:12px 16px; color:var(--muted);
+        border:1px solid var(--border-mid); background:transparent; cursor:pointer;
+      ">✕</button>
+    </div>
+  </div>
+</div>
 
-// ── DRAG & DROP ──
-dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('dragover'); });
-dropZone.addEventListener('dragleave', e => { if (!dropZone.contains(e.relatedTarget)) dropZone.classList.remove('dragover'); });
-dropZone.addEventListener('drop', e => {
-  e.preventDefault(); dropZone.classList.remove('dragover');
-  if (e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]);
-});
-dropZone.addEventListener('click', () => fileInput.click());
-dropZone.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); fileInput.click(); } });
-fileInput.addEventListener('change', () => { if (fileInput.files[0]) handleFile(fileInput.files[0]); });
 
-// ── HELPERS ──
-function humanSize(bytes) {
-  const units = ['B','KB','MB','GB']; let s = bytes;
-  for (const u of units) { if (s < 1024) return `${s.toFixed(1)} ${u}`; s /= 1024; }
-  return `${s.toFixed(1)} TB`;
-}
-function fmtElapsed(ms) {
-  const s = Math.floor(ms / 1000);
-  return s < 60 ? `${s}s` : `${Math.floor(s/60)}m ${s%60}s`;
-}
+<!-- HISTORY MODAL - Clean Version (No Logo, No Back, No Sign Out) -->
+<div id="historyModal">
+  <div id="historyModalContent">
+    
+    <!-- Header - Only Title and Close -->
+    <div class="modal-header">
+      <div class="title">📋 Export History</div>
+      <button onclick="closeHistoryModal()">✕</button>
+    </div>
 
-// ── UPLOAD ──
-async function handleFile(file) {
-  const ext = '.' + file.name.split('.').pop().toLowerCase();
-  if (!SUPPORTED.has(ext)) { alert(`Unsupported: ${ext}`); return; }
-  if (currentJobId) { clearInterval(pollTimer); clearInterval(elapsedTimer); fetch(`/cleanup/${currentJobId}/`, { method:'POST' }); clearSession(); }
+    <!-- Body -->
+    <div id="historyContent">
+      <div style="text-align:center; padding:60px 20px; color:var(--muted);">Loading your exports...</div>
+    </div>
 
-  const fmt      = outputFormat.value.toUpperCase();
-  const inputExt = ext.replace('.','').toUpperCase();
-
-  dropZone.style.display = 'none';
-  panel.classList.add('active');
-  panelName.textContent = file.name;
-  panelSize.textContent = humanSize(file.size);
-  convTag.textContent   = `${inputExt} → ${fmt}`;
-  completeBanner.classList.remove('active');
-  errorBox.classList.remove('active');
-  setStrategy('');
-  clearStats();
-  actions.innerHTML = '';
-  isPaused = false;
-  setStatus('uploading', 0);
-
-  const formData = new FormData();
-  formData.append('file', file);
-  formData.append('output_format', outputFormat.value);
-  formData.append('resolution', document.getElementById('settingRes').value);
-  formData.append('quality',    document.getElementById('settingQuality').value);
-  formData.append('codec',      document.getElementById('settingCodec').value);
-
-  const xhr = new XMLHttpRequest();
-  xhr.open('POST', '/upload/');
-  xhr.upload.onprogress = e => {
-    if (e.lengthComputable) setStatus('uploading', Math.round(e.loaded/e.total*100), `Uploading… ${Math.round(e.loaded/e.total*100)}%`);
-  };
-  xhr.onload = () => {
-    try {
-      const data = JSON.parse(xhr.responseText);
-      if (xhr.status !== 200 || data.error) { showError(data.error || 'Upload failed.'); return; }
-      currentJobId = data.job_id; startTime = Date.now();
-      saveSession(currentJobId, file.name, `${inputExt} → ${fmt}`);
-      elapsedTimer = setInterval(() => {
-        if (!isPaused) statElapsed.textContent = `Elapsed: ${fmtElapsed(Date.now() - startTime)}`;
-      }, 1000);
-      setStatus('converting', 0); showConvertingActions(); pollStatus();
-    } catch { showError('Server error.'); }
-  };
-  xhr.onerror = () => showError('Network error during upload.');
-  xhr.send(formData);
-}
-
-// ── STATUS HELPERS ──
-function setStrategy(text) {
-  if (text) { strategyTag.textContent = text; strategyTag.style.display = ''; }
-  else { strategyTag.style.display = 'none'; }
-}
-
-function clearStats() {
-  statSpeed.style.display = 'none'; statSpeed.innerHTML = '';
-  statEta.style.display   = 'none'; statEta.innerHTML   = '';
-  statElapsed.textContent = '';
-}
-
-function setStatSpeed(val) {
-  if (val) { statSpeed.innerHTML = `Speed: <strong>${val}</strong>`; statSpeed.style.display = ''; }
-  else { statSpeed.style.display = 'none'; }
-}
-function setStatEta(val) {
-  if (val) { statEta.innerHTML = `ETA: <strong>${val}</strong>`; statEta.style.display = ''; }
-  else { statEta.style.display = 'none'; }
-}
-
-function setStatus(state, pct, labelOverride) {
-  const labels = { uploading:'Uploading', queued:'Queued', converting:'Converting', paused:'Paused', done:'Done', error:'Error', cancelled:'Cancelled' };
-  statusLabel.className = `status-label ${state}`;
-  statusLabel.textContent = labelOverride || labels[state] || state;
-  statusPct.textContent = `${pct}%`;
-  progressFill.style.width = pct + '%';
-  progressFill.className = 'progress-fill';
-  if (state === 'queued')     progressFill.classList.add('indeterminate');
-  if (state === 'converting') progressFill.classList.add('converting-fill');
-  if (state === 'paused')     progressFill.classList.add('paused');
-  if (state === 'done')       progressFill.classList.add('done-fill');
-  statusPct.style.color = state === 'done' ? 'var(--success)' : state === 'paused' ? 'var(--warning)' : '';
-}
-
-// ── POLL ──
-function pollStatus() {
-  pollTimer = setInterval(async () => {
-    try {
-      const data = await fetch(`/status/${currentJobId}/`).then(r => r.json());
-      if (data.status === 'converting' || data.status === 'queued') {
-        isPaused = false;
-        setStatus(data.status, data.progress);
-        if (data.strategy) setStrategy(data.strategy);
-        setStatSpeed(data.speed); setStatEta(data.eta);
-        updatePauseBtn(false);
-      } else if (data.status === 'paused') {
-        isPaused = true;
-        setStatus('paused', data.progress, 'Paused');
-        setStatSpeed(''); setStatEta(''); updatePauseBtn(true);
-      } else if (data.status === 'done') {
-        clearInterval(pollTimer); clearInterval(elapsedTimer);
-        setStatus('done', 100);
-        if (data.strategy) setStrategy(data.strategy);
-        setStatSpeed(''); setStatEta('');
-        statElapsed.textContent = startTime ? `Done in ${fmtElapsed(Date.now()-startTime)}` : '';
-        showComplete(data.filename, data.file_size); clearSession();
-      } else if (data.status === 'cancelled') {
-        clearInterval(pollTimer); clearInterval(elapsedTimer);
-        setStatus('cancelled', 0, 'Cancelled');
-        setStrategy(''); clearStats();
-        actions.innerHTML = `<button class="btn btn-ghost" onclick="convertAnother()">↩ Convert another</button>`;
-        clearSession();
-      } else if (data.status === 'error') {
-        clearInterval(pollTimer); clearInterval(elapsedTimer);
-        showError(data.error || 'Conversion failed.'); clearSession();
-      }
-    } catch {
-      clearInterval(pollTimer); clearInterval(elapsedTimer);
-      showError('Lost connection to server.'); clearSession();
-    }
-  }, 800);
-}
-
-// ── ACTION BUTTONS ──
-function showConvertingActions() {
-  actions.innerHTML = `
-    <button id="pauseBtn" class="btn btn-pause" onclick="togglePause()">⏸ Pause</button>
-    <button class="btn btn-cancel" onclick="cancelConversion()">✕ Cancel</button>
-  `;
-}
-
-function updatePauseBtn(paused) {
-  const btn = document.getElementById('pauseBtn');
-  if (!btn) return;
-  btn.innerHTML = paused ? '▶ Resume' : '⏸ Pause';
-  btn.classList.toggle('resumed', paused);
-}
-
-async function togglePause() {
-  if (!currentJobId) return;
-  try {
-    const data = await fetch(`/pause/${currentJobId}/`, { method:'POST' }).then(r => r.json());
-    isPaused = data.paused; updatePauseBtn(data.paused);
-  } catch(e) { console.error('Pause failed', e); }
-}
-
-async function cancelConversion() {
-  if (!currentJobId) return;
-  if (!confirm('Cancel this conversion? Progress will be lost.')) return;
-  clearInterval(pollTimer); clearInterval(elapsedTimer);
-  try { await fetch(`/cancel/${currentJobId}/`, { method:'POST' }); } catch {}
-  setStatus('cancelled', 0, 'Cancelled');
-  setStrategy(''); clearStats();
-  actions.innerHTML = `<button class="btn btn-ghost" onclick="convertAnother()">↩ Convert another</button>`;
-  clearSession();
-}
-
-function showComplete(filename, fileSize) {
-  completeBanner.classList.add('active');
-  completeSubtitle.textContent = `${filename}${fileSize ? ' · ' + fileSize : ''} · Ready to download`;
-  actions.innerHTML = `
-    <a class="btn btn-primary" href="/download/${currentJobId}/" download="${filename}">↓ Download ${filename}</a>
-    <button class="btn btn-ghost" onclick="convertAnother()">↩ Convert another</button>
-  `;
-}
-
-function showError(msg) {
-  setStatus('error', 0);
-  errorBox.textContent = '⚠ ' + msg;
-  errorBox.classList.add('active');
-  actions.innerHTML = `<button class="btn btn-ghost" onclick="convertAnother()">↩ Try again</button>`;
-}
-
-function convertAnother() {
-  if (currentJobId) { fetch(`/cleanup/${currentJobId}/`, { method:'POST' }); currentJobId = null; }
-  clearInterval(pollTimer); clearInterval(elapsedTimer); clearSession();
-  panel.classList.remove('active');
-  completeBanner.classList.remove('active');
-  dropZone.style.display = '';
-  fileInput.value = ''; statusPct.style.color = '';
-  errorBox.classList.remove('active');
-  setStrategy(''); clearStats(); isPaused = false;
-}
-</script>
+    <!-- Footer -->
+    <div class="modal-footer">
+      <button onclick="closeHistoryModal()" class="btn btn-ghost">Close</button>
+    </div>
+  </div>
+</div>
+<script src="{% static 'assets/js/converter.js' %}"></script>
 </body>
 </html>
