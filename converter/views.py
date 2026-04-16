@@ -29,7 +29,7 @@ from django.contrib.auth.decorators import login_required
 import subprocess
 from django.http import FileResponse, Http404
 
-
+from django.http import HttpResponse
 # ── GLOBAL STATE ──────────────────────────────────────────────────────────────
 JOBS      = {}
 JOBS_LOCK = threading.Lock()
@@ -1811,3 +1811,7 @@ def import_drive(request):
         'filename':  output_filename,
         'file_size':_human_size(actual_size) if actual_size else '—',  # note: use _human_size
     })
+
+
+def health(request):
+    return HttpResponse("ok")

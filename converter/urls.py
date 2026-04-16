@@ -30,5 +30,6 @@ urlpatterns = [
     path('thumbnail/<str:job_id>/', views.thumbnail, name='thumbnail'),
     path('history/', views.export_history, name='export_history'),
     path('import-drive/', views.import_drive, name='import_drive'),
+    path('health/', views.health, name='health'),
     
 ]
