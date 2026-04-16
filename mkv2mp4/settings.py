@@ -10,7 +10,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 SECRET_KEY = os.environ.get('SECRET_KEY')
 
-DEBUG = False
+DEBUG = True
 
 ALLOWED_HOSTS = ['*']
 
@@ -125,11 +125,13 @@ LOGOUT_REDIRECT_URL = '/'
 
 SOCIALACCOUNT_PROVIDERS = {
     "google": {
-        "APP": {
-            "client_id": os.environ.get("GOOGLE_CLIENT_ID"),
-            "secret": os.environ.get("GOOGLE_CLIENT_SECRET"),
-            "key": "",
-        },
+        "APPS": [
+            {
+                "client_id": os.environ.get("GOOGLE_CLIENT_ID"),
+                "secret": os.environ.get("GOOGLE_CLIENT_SECRET"),
+                "key": "",
+            }
+        ],
         "SCOPE": ["profile", "email", "openid"],
         "AUTH_PARAMS": {
             "access_type": "online",

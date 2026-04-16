@@ -403,7 +403,6 @@ def _probe_video(input_path: str) -> dict:
         return info
     except Exception:
         return {'vcodec': None, 'acodec': None, 'duration': None}
-
 def _transcribe_with_whisper(video_path: str, job_id: str) -> str | None:
     try:
         with JOBS_LOCK:
@@ -411,18 +410,48 @@ def _transcribe_with_whisper(video_path: str, job_id: str) -> str | None:
             JOBS[job_id]['caption_progress'] = 0
             JOBS[job_id]['caption_stage'] = 'transcribing'
 
-        with open(video_path, 'rb') as f:
-            resp = http_requests.post(
-                'https://api.groq.com/openai/v1/audio/transcriptions',
-                headers={'Authorization': f'Bearer {settings.GROQ_API_KEY}'},
-                files={'file': (Path(video_path).name, f, 'video/mp4')},
-                data={
-                    'model': 'whisper-large-v3',
-                    'response_format': 'verbose_json',
-                    'timestamp_granularities[]': 'segment',
-                },
-                timeout=300,
-            )
+        # Extract audio to a temp WAV — Whisper API is more reliable with audio-only
+        audio_path = video_path + '_audio.m4a'
+        extract_cmd = [
+            'ffmpeg', '-y', '-i', video_path,
+            '-vn',                    # no video
+            '-acodec', 'aac',
+            '-b:a', '128k',
+            '-ac', '1',               # mono — halves file size, Whisper handles it fine
+            audio_path
+        ]
+        result = subprocess.run(extract_cmd, capture_output=True, timeout=120)
+        if result.returncode != 0 or not os.path.exists(audio_path):
+            # Fall back to sending the video directly if extraction fails
+            audio_path = video_path
+
+        send_path = audio_path
+
+        with open(send_path, 'rb') as f:
+            file_bytes = f.read()
+
+        # Clean up temp audio file if we created one
+        if audio_path != video_path and os.path.exists(audio_path):
+            try:
+                os.remove(audio_path)
+            except OSError:
+                pass
+
+        import io
+        audio_filename = Path(send_path).name
+        mime = 'audio/m4a' if audio_path.endswith('.m4a') else 'video/mp4'
+
+        resp = http_requests.post(
+            'https://api.groq.com/openai/v1/audio/transcriptions',
+            headers={'Authorization': f'Bearer {settings.GROQ_API_KEY}'},
+            files={'file': (audio_filename, io.BytesIO(file_bytes), mime)},
+            data={
+                'model': 'whisper-large-v3',
+                'response_format': 'verbose_json',
+                'timestamp_granularities[]': 'segment',
+            },
+            timeout=300,
+        )
         resp.raise_for_status()
         result = resp.json()
 
@@ -455,9 +484,11 @@ def _transcribe_with_whisper(video_path: str, job_id: str) -> str | None:
                 JOBS[job_id]['caption_stage'] = 'done'
 
         return srt_path
+
     except Exception as e:
         with JOBS_LOCK:
             JOBS[job_id]['error'] = f'Caption error: {e}'
+            JOBS[job_id]['caption_stage'] = 'done'   # unblock the frontend
         return None
 
 
@@ -724,7 +755,7 @@ def _convert(job_id: str):
                     'speed':     '',
                     'eta':       '',
                     'file_size': file_size,
-                    'srt_path':  srt_path,
+                    # srt_path intentionally omitted — set by _run_transcription thread
                 })
                 _save_job_record(job_id, JOBS[job_id], 'done', file_size, user=user_obj) 
         else:
