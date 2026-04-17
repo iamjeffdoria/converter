@@ -802,15 +802,17 @@ function refreshCredits() {
           badge.textContent = `${data.free_remaining} exports left`;
         } else {
           badge.className = 'credit-badge free';
-          badge.textContent = '0 exports left';
+          badge.textContent = '↻ Resets next month';
         }
       }
       const mobileBadge = document.querySelector('.mobile-credits');
       if (mobileBadge) {
         if (data.credits > 0) {
           mobileBadge.textContent = `⚡ ${data.credits} credits`;
-        } else {
+        } else if (data.free_remaining > 0) {
           mobileBadge.textContent = `${data.free_remaining} exports left`;
+        } else {
+          mobileBadge.textContent = '↻ Resets next month';
         }
       }
     })

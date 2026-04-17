@@ -60,7 +60,8 @@ class UserAccount(models.Model):
                 return False, f'Free tier: max {settings.FREE_MAX_FILE_SIZE_MB}MB. Buy credits for larger files.', False
             return True, '', False
         else:
-            return False, 'You have used your 20 free conversions this month. Buy credits to continue.', False
+                        # AFTER
+            return False, "You've used all your free exports this month. Your quota resets on the 1st — check back then! 🗓", False
         
 class CreditOrder(models.Model):
     STATUS_CHOICES = [
