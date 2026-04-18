@@ -1009,10 +1009,8 @@ def analytics_api(request):
     with JOBS_LOCK:
         live_jobs = list(JOBS.values())
 
-    # AFTER:
     live_ids = {j.get('job_id') for j in live_jobs if j.get('job_id')}
 
-    # Also exclude any DB record whose job_id appears in JOBS keys directly
     with JOBS_LOCK:
         all_live_ids = set(JOBS.keys()) | live_ids
 
@@ -1069,7 +1067,7 @@ def analytics_api(request):
         else:
             strategy_counter['CPU encode'] += 1
 
-    # ── Hourly distribution (last 24 h) ───────────────────────────────────
+    # ── Hourly distribution (last 24 h) ──────────────────────────────────
     hourly = [0] * 24
     cutoff_24h = now - 86400
     for j in done_jobs:
@@ -1078,7 +1076,7 @@ def analytics_api(request):
             h = datetime.datetime.fromtimestamp(ts).hour
             hourly[h] += 1
 
-    # ── Real heatmap: 7×24 grid ───────────────────────────────────────────
+    # ── Real heatmap: 7×24 grid ──────────────────────────────────────────
     heatmap_grid = [[0] * 24 for _ in range(7)]
     for j in done_jobs:
         ts = j.get('created_at', 0)
@@ -1099,17 +1097,17 @@ def analytics_api(request):
         trend_labels.append(d.strftime('%b %d'))
         trend_convs.append(daily_convs.get(d.isoformat(), 0))
 
-    # ── Recent jobs (last 20, newest first) ───────────────────────────────
+    # ── Recent jobs (last 20, newest first) ──────────────────────────────
     recent = sorted(jobs_snapshot, key=lambda j: j.get('created_at', 0), reverse=True)[:20]
     recent_out = []
     for j in recent:
         inp     = j.get('input', '')
         inp_ext = Path(inp).suffix.lower().strip('.') if inp else '?'
         age_s   = int(now - j.get('created_at', now))
-        if age_s < 60:       when = f'{age_s}s ago'
-        elif age_s < 3600:   when = f'{age_s // 60}m ago'
-        elif age_s < 86400:  when = f'{age_s // 3600}h ago'
-        else:                when = f'{age_s // 86400}d ago'
+        if age_s < 60:      when = f'{age_s}s ago'
+        elif age_s < 3600:  when = f'{age_s // 60}m ago'
+        elif age_s < 86400: when = f'{age_s // 3600}h ago'
+        else:               when = f'{age_s // 86400}d ago'
 
         recent_out.append({
             'name':     j.get('input_name', 'unknown'),
@@ -1121,37 +1119,41 @@ def analytics_api(request):
             'progress': j.get('progress', 0),
             'when':     when,
         })
-    # ── Visitor retention ──────────────────────────────────────────────────────
-    total_visitors   = Visitor.objects.count()
-    returning        = Visitor.objects.filter(visit_count__gt=1).count()
-    new_visitors     = total_visitors - returning
-    retention_rate   = round(returning / total_visitors * 100, 1) if total_visitors else 0.0
 
-    # Visitors seen in last 30 days
+    # ── Visitor retention ─────────────────────────────────────────────────
+    total_visitors = Visitor.objects.count()
+    returning      = Visitor.objects.filter(visit_count__gt=1).count()
+    new_visitors   = total_visitors - returning
+    retention_rate = round(returning / total_visitors * 100, 1) if total_visitors else 0.0
+
     cutoff_30d = now - (30 * 86400)
     active_30d = Visitor.objects.filter(last_seen__gte=cutoff_30d).count()
 
-    # Daily new visitors trend (last 14 days)
     daily_new = defaultdict(int)
     for v in Visitor.objects.filter(first_seen__gte=now - 14 * 86400):
         day = datetime.datetime.fromtimestamp(v.first_seen).strftime('%Y-%m-%d')
         daily_new[day] += 1
-        # ── Registered users ──────────────────────────────────────────────────
-    total_users       = User.objects.count()
-    new_users_7d      = User.objects.filter(date_joined__gte=datetime.datetime.fromtimestamp(now - 7 * 86400, tz=datetime.timezone.utc)).count()
-    new_users_30d     = User.objects.filter(date_joined__gte=datetime.datetime.fromtimestamp(now - 30 * 86400, tz=datetime.timezone.utc)).count()
+
+    # ── Registered users ─────────────────────────────────────────────────
+    total_users        = User.objects.count()
+    new_users_7d       = User.objects.filter(
+        date_joined__gte=datetime.datetime.fromtimestamp(now - 7 * 86400, tz=datetime.timezone.utc)
+    ).count()
+    new_users_30d      = User.objects.filter(
+        date_joined__gte=datetime.datetime.fromtimestamp(now - 30 * 86400, tz=datetime.timezone.utc)
+    ).count()
     users_with_credits = UserAccount.objects.filter(credits__gt=0).count()
 
     recent_users = []
-    for u in User.objects.select_related('account').order_by('-date_joined')[:10]:
+    for u in User.objects.select_related('account').order_by('-date_joined')[:20]:
         age_s = int(now - u.date_joined.timestamp())
         if age_s < 60:      joined = f'{age_s}s ago'
         elif age_s < 3600:  joined = f'{age_s // 60}m ago'
         elif age_s < 86400: joined = f'{age_s // 3600}h ago'
         else:               joined = f'{age_s // 86400}d ago'
         try:
-            acct     = u.account
-            credits  = acct.credits
+            acct      = u.account
+            credits   = acct.credits
             free_used = acct.free_used_month
         except Exception:
             credits = free_used = 0
@@ -1164,6 +1166,7 @@ def analytics_api(request):
             'jobs':     JobRecord.objects.filter(user=u).count(),
             'isPaid':   credits > 0,
         })
+
     # ── Build response ────────────────────────────────────────────────────
     return JsonResponse({
         # KPIs
@@ -1197,10 +1200,10 @@ def analytics_api(request):
         'maxQueue':       _MAX_QUEUE,
 
         # Retention
-        'totalVisitors':   total_visitors,
+        'totalVisitors':    total_visitors,
         'returningVisitors': returning,
-        'newVisitors':     new_visitors,
-        'retentionRate':   retention_rate,
+        'newVisitors':      new_visitors,
+        'retentionRate':    retention_rate,
         'activeVisitors30d': active_30d,
 
         # Users
@@ -1214,6 +1217,7 @@ def analytics_api(request):
 
 VISITOR_COOKIE = 'vc_visitor_id'
 VISITOR_COOKIE_AGE = 365 * 24 * 60 * 60  # 1 year
+
 
 def _track_visitor(request, response):
     visitor_id = request.COOKIES.get(VISITOR_COOKIE)
@@ -1229,8 +1233,7 @@ def _track_visitor(request, response):
             Visitor.objects.create(visitor_id=visitor_id, first_seen=now, last_seen=now, visit_count=1)
         else:
             Visitor.objects.filter(visitor_id=visitor_id).update(last_seen=now, visit_count=F('visit_count') + 1)
-        
-        # NEW: if user is logged in, keep their UserAccount visitor_id in sync
+
         if request.user.is_authenticated:
             UserAccount.objects.filter(user=request.user, visitor_id='').update(visitor_id=visitor_id)
     except Exception:
