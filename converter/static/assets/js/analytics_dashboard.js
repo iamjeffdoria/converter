@@ -76,6 +76,14 @@ async function render() {
   drawStats('inputFmtStats', d.inputFormats.map(f => ({ ...f, pct: Math.round(f.val / inMax * 100) })), '#34d399');
 
   drawJobs(d.recentJobs);
+   // ── User KPIs ──
+  setVal('uv1', d.totalUsers.toLocaleString());
+  setVal('uv2', d.newUsers7d.toLocaleString());
+  setVal('uv3', d.newUsers30d.toLocaleString());
+  setVal('uv4', d.paidUsers.toLocaleString());
+  document.getElementById('ud1').innerHTML = `${d.paidUsers} paid · ${d.totalUsers - d.paidUsers} free`;
+  document.getElementById('ud4').innerHTML = `<span style="color:var(--green)">${d.totalUsers > 0 ? Math.round(d.paidUsers / d.totalUsers * 100) : 0}%</span> of total`;
+  drawUsers(d.recentUsers);
 
   // ── Retention KPIs ──
   setVal('rv1', d.totalVisitors.toLocaleString());
@@ -249,7 +257,24 @@ function drawJobs(jobs) {
       <td style="color:var(--faint)">${j.when}</td>
     </tr>`).join('');
 }
-
+// ── USERS TABLE ───────────────────────────────────────────────────────────────
+function drawUsers(users) {
+  if (!users || !users.length) {
+    document.getElementById('usersBody').innerHTML =
+      `<tr><td colspan="7" style="text-align:center;color:var(--faint);padding:24px">No registered users yet</td></tr>`;
+    return;
+  }
+  document.getElementById('usersBody').innerHTML = users.map(u => `
+    <tr>
+      <td class="name">${u.username}</td>
+      <td style="color:var(--faint);font-size:11px">${u.email || '—'}</td>
+      <td>${u.jobs}</td>
+      <td>${u.credits}</td>
+      <td>${u.freeUsed}</td>
+      <td><span class="pill ${u.isPaid ? 'pill-done' : 'pill-act'}">${u.isPaid ? 'paid' : 'free'}</span></td>
+      <td style="color:var(--faint)">${u.joined}</td>
+    </tr>`).join('');
+}
 // ── CONTROLS ──────────────────────────────────────────────────────────────────
 function seg(btn, r) {
   document.querySelectorAll('.seg').forEach(b => b.classList.remove('on'));

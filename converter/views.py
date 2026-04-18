@@ -1136,7 +1136,34 @@ def analytics_api(request):
     for v in Visitor.objects.filter(first_seen__gte=now - 14 * 86400):
         day = datetime.datetime.fromtimestamp(v.first_seen).strftime('%Y-%m-%d')
         daily_new[day] += 1
+        # ── Registered users ──────────────────────────────────────────────────
+    total_users       = User.objects.count()
+    new_users_7d      = User.objects.filter(date_joined__gte=datetime.datetime.fromtimestamp(now - 7 * 86400, tz=datetime.timezone.utc)).count()
+    new_users_30d     = User.objects.filter(date_joined__gte=datetime.datetime.fromtimestamp(now - 30 * 86400, tz=datetime.timezone.utc)).count()
+    users_with_credits = UserAccount.objects.filter(credits__gt=0).count()
 
+    recent_users = []
+    for u in User.objects.select_related('account').order_by('-date_joined')[:10]:
+        age_s = int(now - u.date_joined.timestamp())
+        if age_s < 60:      joined = f'{age_s}s ago'
+        elif age_s < 3600:  joined = f'{age_s // 60}m ago'
+        elif age_s < 86400: joined = f'{age_s // 3600}h ago'
+        else:               joined = f'{age_s // 86400}d ago'
+        try:
+            acct     = u.account
+            credits  = acct.credits
+            free_used = acct.free_used_month
+        except Exception:
+            credits = free_used = 0
+        recent_users.append({
+            'username': u.username,
+            'email':    u.email,
+            'joined':   joined,
+            'credits':  credits,
+            'freeUsed': free_used,
+            'jobs':     JobRecord.objects.filter(user=u).count(),
+            'isPaid':   credits > 0,
+        })
     # ── Build response ────────────────────────────────────────────────────
     return JsonResponse({
         # KPIs
@@ -1175,6 +1202,13 @@ def analytics_api(request):
         'newVisitors':     new_visitors,
         'retentionRate':   retention_rate,
         'activeVisitors30d': active_30d,
+
+        # Users
+        'totalUsers':  total_users,
+        'newUsers7d':  new_users_7d,
+        'newUsers30d': new_users_30d,
+        'paidUsers':   users_with_credits,
+        'recentUsers': recent_users,
     })
 
 
