@@ -495,7 +495,7 @@ async function cancelConversion() {
 function showComplete(filename, fileSize) {
   const captionsOn = document.getElementById('settingCaptions').checked;
   const captionStyle = document.getElementById('settingCaptionStyle').value;
-  const captionNote = captionsOn && captionStyle === 'hard' ? ' · 🔥 Captions burned in' : '';
+  const captionNote = captionsOn && captionStyle === 'burned' ? ' · 🔥 Captions burned in' : '';
   document.getElementById('completeBanner').classList.add('active');
   document.getElementById('completeSubtitle').textContent = `${filename}${fileSize ? ' · ' + fileSize : ''}${captionNote} · Ready to download`;
 
@@ -506,7 +506,7 @@ const srtBtn = captionsOn && captionStyle === 'soft'
        </a>`
     : '';
 
-const isHard = captionsOn && captionStyle === 'hard';
+const isHard = captionsOn && captionStyle === 'burned';
   actions.innerHTML = `
     <a id="downloadBtn" class="btn btn-primary ${isHard ? 'btn-disabled' : ''}"
        href="${isHard ? '#' : `/download/${currentJobId}/`}"
@@ -606,10 +606,9 @@ function startFakeProgress(targetPct, durationMs) {
         updateCaptionBar(100, '🎙 Transcription done');
       } else if (stage === 'burning') {
         clearInterval(fakeInterval);
-        fakeProgress = 0;
-        updateCaptionBar(0, '🔥 Burning captions into video…');
-        startFakeProgress(90, 120000);
-      }  else if (stage === 'done') {
+        const realPct = data.burn_pct || 0;
+        updateCaptionBar(realPct, `🔥 Burning captions… ${realPct}%`);
+      } else if (stage === 'done') {
         clearInterval(fakeInterval);
         clearInterval(check);
         updateCaptionBar(100, '✅ Captions complete');
@@ -630,34 +629,68 @@ function startFakeProgress(targetPct, durationMs) {
         }, 3000);
       }
 if (data.srt_ready) {
-        clearInterval(check);
-        clearInterval(fakeInterval);
+    // For soft captions — unlock SRT download button
+    document.querySelectorAll('#srtStatus').forEach(el => {
+      el.textContent = '✓ ready';
+      el.style.opacity = '1';
+      el.style.color = 'var(--success)';
+    });
+    document.querySelectorAll('#srtBtn').forEach(el => {
+      el.href = `/download-srt/${currentJobId}/`;
+      el.setAttribute('download', '');
+      el.style.opacity = '1';
+      el.style.cursor = 'pointer';
+      el.style.pointerEvents = 'auto';
+    });
 
-        // Update srtStatus text in both the inline actions bar AND the modal
-        document.querySelectorAll('#srtStatus').forEach(el => {
-          el.textContent = '✓ ready';
-          el.style.opacity = '1';
-          el.style.color = 'var(--success)';
-        });
+    // Caption preview overlay
+    const captionStyle = document.getElementById('settingCaptionStyle').value;
+    const videoEl = document.getElementById('videoPreviewEl');
+    if (videoEl && captionStyle === 'burned') {
+      fetch(`/download-srt/${currentJobId}/`)
+        .then(r => r.text())
+        .then(srtText => {
+          const vttText = 'WEBVTT\n\n' + srtText.replace(/(\d{2}:\d{2}:\d{2}),(\d{3})/g, '$1.$2');
+          const blob = new Blob([vttText], { type: 'text/vtt' });
+          const vttUrl = URL.createObjectURL(blob);
+          Array.from(videoEl.querySelectorAll('track')).forEach(t => t.remove());
+          const track = document.createElement('track');
+          track.kind = 'subtitles';
+          track.label = 'Burned In Preview';
+          track.srclang = 'en';
+          track.src = vttUrl;
+          track.default = true;
+          videoEl.appendChild(track);
+          videoEl.textTracks[0].mode = 'showing';
+          const previewHeader = document.querySelector('.panel-split-left-header');
+          if (previewHeader && !document.getElementById('captionPreviewBadge')) {
+            const badge = document.createElement('span');
+            badge.id = 'captionPreviewBadge';
+            badge.textContent = '🔥 Caption Preview';
+            badge.style.cssText = 'font-size:8px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:#fff;background:var(--accent);padding:2px 7px;border-radius:2px;';
+            previewHeader.appendChild(badge);
+          }
+        })
+        .catch(() => {});
+    }
 
-        // Unlock the srt download link in both locations
-        document.querySelectorAll('#srtBtn').forEach(el => {
-          el.href = `/download-srt/${currentJobId}/`;
-          el.setAttribute('download', '');
-          el.style.opacity = '1';
-          el.style.cursor = 'pointer';
-          el.style.pointerEvents = 'auto';
-        });
-
-        setTimeout(() => {
-          const wrap = document.getElementById('captionProgressWrap');
-          if (wrap) wrap.remove();
-        }, 2000);
-      }
+    // ── KEY FIX: only stop polling for SOFT captions ──
+    // For burned captions, keep polling so the burn stage can complete
+    const captionStyleVal = document.getElementById('settingCaptionStyle').value;
+    if (captionStyleVal !== 'burned') {
+      clearInterval(check);
+      clearInterval(fakeInterval);
+      setTimeout(() => {
+        const wrap = document.getElementById('captionProgressWrap');
+        if (wrap) wrap.remove();
+      }, 2000);
+    }
+    // For burned: let the existing stage === 'done' handler above take care of cleanup
+  }
     } catch { clearInterval(check); clearInterval(fakeInterval); }
-  }, 2000);
+}, 1000); // poll every 1s instead of 2s for snappier feedback
 
-  setTimeout(() => { clearInterval(check); clearInterval(fakeInterval); }, 300000);
+  setTimeout(() => { clearInterval(check); clearInterval(fakeInterval); }, 600000); // 10 min timeout
 }
 
 function showSizeComparison(originalBytes, convertedSizeStr) {
@@ -762,6 +795,12 @@ function convertAnother() {
   userModifiedSettings = false;
   document.getElementById('settingCaptions').checked = false;
   document.getElementById('captionLabel').textContent = 'Off';
+  document.getElementById('captionStyleGroup').style.display = 'none';
+  // Clear any caption track from previous preview
+  const prevVideo = document.getElementById('videoPreviewEl');
+  if (prevVideo) Array.from(prevVideo.querySelectorAll('track')).forEach(t => t.remove());
+  const badge = document.getElementById('captionPreviewBadge');
+  if (badge) badge.remove();
   // Restore original quality/codec labels
   const qualitySelect = document.getElementById('settingQuality');
   Array.from(qualitySelect.options).forEach(opt => { if (opt._originalText) opt.text = opt._originalText; });

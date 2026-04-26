@@ -703,47 +703,155 @@ def _convert(job_id: str):
 
             if captions_requested:
                 def _run_transcription():
-                    result = _transcribe_with_whisper(output_path, job_id)
+                    srt_result = _transcribe_with_whisper(output_path, job_id)
                     with JOBS_LOCK:
-                        JOBS[job_id]['srt_path'] = result
+                        JOBS[job_id]['srt_path'] = srt_result
 
-                    # ── HARDSUB: burn captions into video ─────────────────
-                    if result and caption_style == 'hard':
+                    if not srt_result or caption_style != 'burned':
+                        # soft captions — we're done
+                        with JOBS_LOCK:
+                            JOBS[job_id]['caption_stage'] = 'done'
+                            JOBS[job_id]['caption_progress'] = 100
+                        return
+
+                    # ── HARDSUB BURN ──────────────────────────────────────
+                    hardsubbed_path = output_path + '_hs' + Path(output_path).suffix
+
+                    try:
+                        with JOBS_LOCK:
+                            JOBS[job_id]['strategy'] = '🔥 Burning captions into video…'
+                            JOBS[job_id]['caption_progress'] = 0
+                            JOBS[job_id]['caption_stage'] = 'burning'
+
+                        # ── WINDOWS-SAFE SRT PATH ──
+                        # The subtitles filter on Windows needs the drive colon escaped
+                        # and all backslashes converted to forward slashes.
+                        # We also wrap in double quotes and use the filter's own escaping.
+                        srt_abs = os.path.abspath(srt_result)
+                        if os.name == 'nt':  # Windows
+                            # e.g. C:\path\file.srt → C\:/path/file.srt
+                            srt_for_filter = srt_abs.replace('\\', '/').replace(':', '\\:')
+                        else:  # Linux / Mac — just escape spaces and colons
+                            srt_for_filter = srt_abs.replace(':', '\\:').replace(' ', '\\ ')
+
+                        print(f'[BURN] SRT path raw:    {srt_abs}')
+                        print(f'[BURN] SRT path filter: {srt_for_filter}')
+                        print(f'[BURN] Output exists:   {os.path.exists(output_path)}')
+                        print(f'[BURN] SRT exists:      {os.path.exists(srt_abs)}')
+
+                        cpu_count = os.cpu_count() or 2
+
+                        # Get video duration for real progress tracking
+                        dur_result = subprocess.run(
+                            ['ffprobe', '-v', 'error', '-show_entries', 'format=duration',
+                             '-of', 'default=noprint_wrappers=1:nokey=1', output_path],
+                            capture_output=True, text=True, timeout=10
+                        )
                         try:
+                            burn_duration = float(dur_result.stdout.strip())
+                        except (ValueError, AttributeError):
+                            burn_duration = None
+
+                        burn_cmd = [
+                            'ffmpeg', '-y',
+                            '-i', output_path,
+                            '-vf', f"subtitles='{srt_for_filter}':force_style='FontSize=18,FontName=Arial,PrimaryColour=&Hffffff,OutlineColour=&H000000,Outline=2,Shadow=1,Alignment=2'",
+                            '-c:v', 'libx264',
+                            '-preset', 'ultrafast',
+                            '-crf', '23',
+                            '-tune', 'zerolatency',
+                            '-threads', str(cpu_count),
+                            '-x264-params', f'threads={cpu_count}',
+                            '-c:a', 'copy',
+                            '-movflags', '+faststart',
+                            hardsubbed_path
+                        ]
+
+                        print(f'[BURN] Running: {" ".join(burn_cmd)}')
+
+                        # ── USE Popen FOR REAL PROGRESS ──
+                        proc = subprocess.Popen(
+                            burn_cmd,
+                            stderr=subprocess.PIPE,
+                            universal_newlines=True,
+                            bufsize=1,
+                        )
+
+                        last_flush = time.monotonic()
+                        for line in proc.stderr:
+                            if 'time=' in line and burn_duration:
+                                try:
+                                    parts = {}
+                                    for token in line.strip().split():
+                                        if '=' in token:
+                                            k, v = token.split('=', 1)
+                                            parts[k.strip()] = v.strip()
+                                    if 'time' in parts:
+                                        current = _parse_time(parts['time'])
+                                        pct = min(int((current / burn_duration) * 100), 99)
+                                        now = time.monotonic()
+                                        if now - last_flush >= 0.5:
+                                            with JOBS_LOCK:
+                                                JOBS[job_id]['caption_progress'] = pct
+                                                JOBS[job_id]['burn_pct'] = pct
+                                            last_flush = now
+                                except (ValueError, ZeroDivisionError):
+                                    pass
+                            # log any ffmpeg errors to console
+                            if 'error' in line.lower() or 'invalid' in line.lower():
+                                print(f'[BURN ffmpeg] {line.strip()}')
+
+                        proc.wait(timeout=300)
+
+                        if proc.returncode == 0 and os.path.exists(hardsubbed_path):
+                            os.replace(hardsubbed_path, output_path)
+                            new_size = os.path.getsize(output_path)
                             with JOBS_LOCK:
-                                JOBS[job_id]['strategy'] = '🔥 Burning captions into video…'
-                                JOBS[job_id]['caption_progress'] = 0
-                                JOBS[job_id]['caption_stage'] = 'burning'
-
-                            hardsubbed_path = output_path + '_hardsubbed' + Path(output_path).suffix
-
-                            # On Windows, ffmpeg subtitles filter needs forward slashes
-                            # and the colon in drive letter escaped as \:
-                            srt_for_ffmpeg = result.replace('\\', '/').replace('C:/', 'C\\:/')
-
-                            burn_cmd = [
-                                'ffmpeg', '-y', '-i', output_path,
-                                '-vf', f"subtitles=filename='{srt_for_ffmpeg}':force_style='FontSize=18,FontName=Arial,PrimaryColour=&Hffffff,OutlineColour=&H000000,Outline=2,Alignment=2'",
-                                '-c:v', 'libx264', '-preset', 'fast', '-crf', '18',
-                                '-c:a', 'copy',
-                                hardsubbed_path
-                            ]
-                            proc = subprocess.run(burn_cmd, capture_output=True, timeout=600)
-
-                            if proc.returncode == 0:
-                                os.replace(hardsubbed_path, output_path)
-                                new_size = os.path.getsize(output_path)
-                                with JOBS_LOCK:
-                                    JOBS[job_id]['file_size'] = new_size
-                                    JOBS[job_id]['caption_progress'] = 100
-                                    JOBS[job_id]['caption_stage'] = 'done'
-                            else:
-                                err_out = proc.stderr.decode('utf-8', errors='ignore')[-300:]
-                                with JOBS_LOCK:
-                                    JOBS[job_id]['error'] = f'Caption burn failed: {err_out}'
-                        except Exception as e:
+                                JOBS[job_id]['file_size'] = new_size
+                                JOBS[job_id]['caption_progress'] = 100
+                                JOBS[job_id]['caption_stage'] = 'done'
+                                JOBS[job_id]['burn_pct'] = 100
+                            print(f'[BURN] ✅ Done. Output size: {new_size}')
+                        else:
+                            stderr_tail = ''
+                            try:
+                                # read any remaining stderr
+                                remaining = proc.stderr.read() if proc.stderr else ''
+                                stderr_tail = remaining[-500:]
+                            except Exception:
+                                pass
+                            print(f'[BURN] ❌ Failed (rc={proc.returncode}): {stderr_tail}')
                             with JOBS_LOCK:
-                                JOBS[job_id]['error'] = f'Hardsub error: {e}'
+                                JOBS[job_id]['error'] = f'Caption burn failed (rc={proc.returncode}): {stderr_tail}'
+                                JOBS[job_id]['caption_stage'] = 'done'
+                                JOBS[job_id]['caption_progress'] = 100
+                            # clean up partial file
+                            try:
+                                if os.path.exists(hardsubbed_path):
+                                    os.remove(hardsubbed_path)
+                            except OSError:
+                                pass
+
+                    except subprocess.TimeoutExpired:
+                        print('[BURN] ❌ Timed out after 5 minutes')
+                        try: proc.kill()
+                        except Exception: pass
+                        with JOBS_LOCK:
+                            JOBS[job_id]['error'] = 'Caption burn timed out (>5 min). Try a shorter clip.'
+                            JOBS[job_id]['caption_stage'] = 'done'
+                            JOBS[job_id]['caption_progress'] = 100
+                        try:
+                            if os.path.exists(hardsubbed_path):
+                                os.remove(hardsubbed_path)
+                        except OSError:
+                            pass
+
+                    except Exception as e:
+                        print(f'[BURN] ❌ Exception: {e}')
+                        with JOBS_LOCK:
+                            JOBS[job_id]['error'] = f'Hardsub error: {e}'
+                            JOBS[job_id]['caption_stage'] = 'done'
+                            JOBS[job_id]['caption_progress'] = 100
 
                 t = threading.Thread(target=_run_transcription, daemon=True)
                 t.start()
@@ -880,6 +988,7 @@ def status(request, job_id: str):
         'srt_ready':        bool(job.get('srt_path') and os.path.exists(job.get('srt_path', ''))),
         'caption_progress': job.get('caption_progress', 0),
         'caption_stage':    job.get('caption_stage', ''),
+        'burn_pct':         job.get('burn_pct', 0),
     }
     if job['status'] == 'done':
         response['file_size'] = _human_size(job.get('file_size', 0))
