@@ -148,3 +148,5 @@ ACCOUNT_SIGNUP_FORM_CLASS = None
 CSRF_TRUSTED_ORIGINS = [
     "https://converter-972n.onrender.com"
 ]
+
+SOCIALACCOUNT_LOGIN_ON_GET = True
