@@ -6,35 +6,43 @@ from django.shortcuts import redirect
 class NoNewUsersGoogleAdapter(DefaultSocialAccountAdapter):
 
     def pre_social_login(self, request, sociallogin):
-        # Case 1: SocialAccount already exists and is linked — just let through
+        # Case 1: SocialAccount already linked — let through immediately
         if sociallogin.is_existing:
             return
 
-        # Case 2: New Google login — try to find existing user by email
+        from django.contrib.auth.models import User
+        from allauth.socialaccount.models import SocialAccount
+
+        google_uid = sociallogin.account.uid
+
+        # Case 2: SocialAccount exists in DB but allauth didn't detect it
+        # (can happen on free-tier cold starts / session loss)
+        try:
+            existing_social = SocialAccount.objects.get(
+                provider='google', uid=google_uid
+            )
+            sociallogin.connect(request, existing_social.user)
+            return
+        except SocialAccount.DoesNotExist:
+            pass
+
+        # Case 3: No SocialAccount yet — try matching by email
         email = (sociallogin.account.extra_data.get('email') or '').strip().lower()
         if email:
-            from django.contrib.auth.models import User
-            # Match by email (case-insensitive)
             qs = User.objects.filter(email__iexact=email)
-            if qs.count() == 1:
-                user = qs.first()
-                sociallogin.connect(request, user)
-                return
-            # Multiple users with same email — connect to the one
-            # whose username matches the Google email prefix (best guess)
-            if qs.count() > 1:
+            if qs.exists():
                 user = qs.first()
                 sociallogin.connect(request, user)
                 return
 
-        # Case 3: No existing user found — only allow if from /register/
+        # Case 4: No match at all — only allow if coming from /register/
         from_register = request.session.get('google_from_register', False)
         if from_register:
             if email:
                 request.session['google_pending_email'] = email
             return  # allow through to signup flow
 
-        # Block — redirect to register with error
+        # Block — not registered, not from register page
         raise ImmediateHttpResponse(
             redirect('/register/?error=google_no_account')
         )
