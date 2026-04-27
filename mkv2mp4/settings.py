@@ -13,7 +13,16 @@ SECRET_KEY = os.environ.get('SECRET_KEY')
 
 DEBUG = False
 
-ALLOWED_HOSTS = ['*']
+ALLOWED_HOSTS = [
+    'exportready.is-a.dev',
+    'www.exportready.is-a.dev',
+    'converter-972n.onrender.com',
+]
+CSRF_TRUSTED_ORIGINS = [
+    'https://exportready.is-a.dev',
+    'https://www.exportready.is-a.dev',
+    'https://converter-972n.onrender.com',
+]
 
 INSTALLED_APPS = [
     'django.contrib.admin',
