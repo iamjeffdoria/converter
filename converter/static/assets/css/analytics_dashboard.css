@@ -120,6 +120,7 @@ html, body {
   position: fixed;
   top: 0; left: 0;
   width: 220px; height: 100vh;
+  height: 100dvh;
   background: var(--surface);
   border-right: 1px solid var(--border2);
   z-index: 400;
@@ -127,6 +128,7 @@ html, body {
   display: flex; flex-direction: column;
   transform: translateX(-100%);
   transition: transform .25s ease;
+  overflow-y: auto;
 }
 .drawer.open { transform: translateX(0); }
 
@@ -338,4 +340,11 @@ line.gl { stroke: #252525; stroke-width: 1; }
   .kpi-grid  { grid-template-columns: 1fr; }
   .kpi-value { font-size: 26px; }
   .main      { padding: 12px 10px 48px; }
+}
+
+.drawer .side-foot {
+  margin-top: auto;
+  padding: 16px 16px 24px;
+  border-top: 1px solid var(--border);
+  flex-shrink: 0;
 }

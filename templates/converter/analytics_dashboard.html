@@ -32,7 +32,7 @@
     <svg width="13" height="13" viewBox="0 0 16 16" fill="currentColor"><rect x="1" y="9" width="3" height="6" rx="1"/><rect x="6.5" y="5" width="3" height="10" rx="1"/><rect x="12" y="2" width="3" height="13" rx="1"/></svg>
     Overview
   </a>
-  <div style="margin-top:auto;padding:16px 16px 0;border-top:1px solid var(--border)">
+<div style="margin-top:auto;padding:16px 16px 24px;border-top:1px solid var(--border);flex-shrink:0;position:sticky;bottom:0;background:var(--surface)">
     <div class="online"><span class="green-dot"></span>Server online</div>
     <div class="sync-text">Last sync: <span id="syncTimeDrawer">—</span></div>
     <a href="{% url 'analytics_logout' %}" class="btn-logout">

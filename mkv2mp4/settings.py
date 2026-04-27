@@ -92,12 +92,12 @@ FILE_UPLOAD_MAX_MEMORY_SIZE = 2 * 1024 * 1024 * 1024
 # Keep converted files for 1 hour, then clean up
 CONVERTED_FILE_TTL_SECONDS = 3600
 
-# DATABASES = {
-#     'default': {
-#         'ENGINE': 'django.db.backends.sqlite3',
-#         'NAME': BASE_DIR / 'db.sqlite3',
-#     }
-# }
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': BASE_DIR / 'db.sqlite3',
+    }
+}
 DATABASES = {
     'default': dj_database_url.config(
         default=os.environ.get('DATABASE_URL', f'sqlite:///{BASE_DIR / "db.sqlite3"}'),
