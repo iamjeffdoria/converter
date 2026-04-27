@@ -243,3 +243,28 @@
     .auth-title { font-size: 17px; }
     .form-group { margin-bottom: 10px; }
   }
+
+  .input-eye-wrap {
+  position: relative;
+  display: block;
+}
+.input-eye-wrap .form-input {
+  padding-right: 40px;
+  width: 100%;
+}
+.eye-btn {
+  position: absolute;
+  top: 50%;
+  right: 10px;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--muted);
+  display: flex;
+  align-items: center;
+  padding: 0;
+  line-height: 1;
+  transition: color 0.15s;
+}
+.eye-btn:hover { color: var(--accent); }

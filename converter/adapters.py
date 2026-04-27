@@ -56,7 +56,6 @@ class NoNewUsersGoogleAdapter(DefaultSocialAccountAdapter):
         request.session.pop('google_from_register', None)
         user = super().save_user(request, sociallogin, form)
 
-        # Make sure email is always synced from Google
         google_email = (
             sociallogin.account.extra_data.get('email')
             or request.session.pop('google_pending_email', '')
@@ -64,5 +63,13 @@ class NoNewUsersGoogleAdapter(DefaultSocialAccountAdapter):
         if google_email and not user.email:
             user.email = google_email
             user.save(update_fields=['email'])
+
+        # Always create UserAccount for Google-registered users
+        from .models import UserAccount
+        visitor_id = request.COOKIES.get('vc_visitor_id', '')
+        UserAccount.objects.get_or_create(
+            user=user,
+            defaults={'visitor_id': visitor_id}
+        )
 
         return user
