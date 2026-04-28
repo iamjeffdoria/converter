@@ -14,6 +14,8 @@ SECRET_KEY = os.environ.get('SECRET_KEY')
 DEBUG = False
 
 ALLOWED_HOSTS = [
+    'localhost', 
+    '127.0.0.1',
     'exportready.is-a.dev',
     'www.exportready.is-a.dev',
     'converter-972n.onrender.com',
