@@ -288,13 +288,31 @@ document.getElementById('completeBanner')?.classList.remove('active');
   document.getElementById('sizeCompare').classList.remove('active');
   // Video preview — static element in HTML, just populate it
   if (videoObjectUrl) { URL.revokeObjectURL(videoObjectUrl); videoObjectUrl = null; }
-  videoObjectUrl = URL.createObjectURL(file);
-  const videoEl = document.getElementById('videoPreviewEl');
-  const previewWrap = document.getElementById('videoPreviewWrap');
-  const previewSizeEl = document.getElementById('previewFileSize');
-  if (videoEl) videoEl.src = videoObjectUrl;
-  if (previewSizeEl) previewSizeEl.textContent = humanSize(file.size);
-  if (previewWrap) previewWrap.style.display = '';
+videoObjectUrl = URL.createObjectURL(file);
+const videoEl = document.getElementById('videoPreviewEl');
+const previewWrap = document.getElementById('videoPreviewWrap');
+const previewSizeEl = document.getElementById('previewFileSize');
+if (previewSizeEl) previewSizeEl.textContent = humanSize(file.size);
+if (previewWrap) previewWrap.style.display = '';
+
+if (videoEl) {
+  // Reset before assigning — avoids stale state on mobile
+  videoEl.pause();
+  videoEl.removeAttribute('src');
+  videoEl.load();
+
+  videoEl.src = videoObjectUrl;
+
+  // Mobile: load() must be called after src is set, then play
+  videoEl.load();
+  videoEl.addEventListener('loadedmetadata', () => {
+    // Muted autoplay is allowed on mobile; unmuted is blocked
+    videoEl.muted = true;
+    videoEl.play().catch(() => {
+      // Autoplay blocked — that's fine, user can tap play manually
+    });
+  }, { once: true });
+}
 
   setStrategy('');
   clearStats();
@@ -357,31 +375,59 @@ async function startConvert() {
   formData.append('captions', document.getElementById('settingCaptions').checked ? 'on' : 'off');
   formData.append('caption_style', document.getElementById('settingCaptionStyle').value);
 
-  const xhr = new XMLHttpRequest();
-  xhr.open('POST', '/upload/');
-  xhr.upload.onprogress = e => {
-    if (e.lengthComputable) setStatus('uploading', Math.round(e.loaded/e.total*100), `Uploading… ${Math.round(e.loaded/e.total*100)}%`);
-  };
-  xhr.onload = () => {
-    try {
-      const data = JSON.parse(xhr.responseText);
-      if (xhr.status === 401) {
-        showLoginPrompt();
-        panel.classList.remove('active');
-        dropZone.style.display = '';
-        return;
-      }
-      if (xhr.status !== 200 || data.error) { showError(data.error || 'Upload failed.'); return; }
-      currentJobId = data.job_id; startTime = Date.now();
-      saveSession(currentJobId, file.name, `${inputExt} → ${fmt}`);
-      elapsedTimer = setInterval(() => {
-        if (!isPaused) statElapsed.textContent = `Elapsed: ${fmtElapsed(Date.now() - startTime)}`;
-      }, 1000);
-      setStatus('converting', 0); showConvertingActions(); pollStatus();
-    } catch { showError('Server error.'); }
-  };
-  xhr.onerror = () => showError('Network error during upload.');
-  xhr.send(formData);
+const xhr = new XMLHttpRequest();
+xhr.open('POST', '/upload/');
+
+// Mobile: set explicit timeout (default is often 0=infinite but mobile OS kills it)
+xhr.timeout = 300000; // 5 minutes
+
+// Add CSRF token explicitly — some mobile browsers don't send cookies reliably
+const csrfToken = getCookie('csrftoken');
+if (csrfToken) xhr.setRequestHeader('X-CSRFToken', csrfToken);
+
+xhr.upload.onprogress = e => {
+  if (e.lengthComputable) {
+    const pct = Math.round(e.loaded / e.total * 100);
+    setStatus('uploading', pct, `Uploading… ${pct}%`);
+  }
+};
+
+xhr.onload = () => {
+  try {
+    const data = JSON.parse(xhr.responseText);
+    if (xhr.status === 401) {
+      showLoginPrompt();
+      panel.classList.remove('active');
+      dropZone.style.display = '';
+      return;
+    }
+    if (xhr.status !== 200 || data.error) {
+      showError(data.error || 'Upload failed.');
+      return;
+    }
+    currentJobId = data.job_id;
+    startTime = Date.now();
+    saveSession(currentJobId, file.name, `${inputExt} → ${fmt}`);
+    elapsedTimer = setInterval(() => {
+      if (!isPaused) statElapsed.textContent = `Elapsed: ${fmtElapsed(Date.now() - startTime)}`;
+    }, 1000);
+    setStatus('converting', 0);
+    showConvertingActions();
+    pollStatus();
+  } catch (e) {
+    showError('Server error: ' + (e.message || 'Unknown'));
+  }
+};
+
+xhr.ontimeout = () => showError('Upload timed out. Check your connection and try again.');
+xhr.onerror = () => {
+  // Provide a more specific error for mobile debugging
+  const online = navigator.onLine;
+  showError(online
+    ? 'Upload failed (server rejected). File may be too large or unsupported.'
+    : 'No internet connection detected. Please check your network.');
+};
+xhr.send(formData);
 }
 
 // ── STATUS HELPERS ──

@@ -208,6 +208,10 @@ def upload(request):
     if not allowed:
         return JsonResponse({'error': reason}, status=403)
 
+    # Guard: reject if Django received 0 bytes (mobile upload interrupted)
+    if file.size == 0:
+        return JsonResponse({'error': 'Empty file received. Please try again.'}, status=400)
+
 # ── Reject early if global queue is full OR user is hogging slots ─────────
     with JOBS_LOCK:
         queued_or_converting = sum(
