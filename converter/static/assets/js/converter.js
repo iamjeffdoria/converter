@@ -259,8 +259,33 @@ let pendingFile = null;
 let videoObjectUrl = null;
 
 async function handleFile(file) {
-  const ext = '.' + file.name.split('.').pop().toLowerCase();
-  if (!SUPPORTED.has(ext)) { alert(`Unsupported: ${ext}`); return; }
+  // Android sometimes gives a UUID temp name with no extension
+  // Try to get extension from file.type if name has none
+  let filename = file.name || '';
+  let ext = '.' + filename.split('.').pop().toLowerCase();
+
+  // Fallback: derive extension from MIME type
+  if (!SUPPORTED.has(ext) || filename === ext) {
+    const mimeMap = {
+      'video/mp4':        '.mp4',
+      'video/x-matroska': '.mkv',
+      'video/quicktime':  '.mov',
+      'video/x-msvideo':  '.avi',
+      'video/webm':       '.webm',
+      'video/x-flv':      '.flv',
+      'video/x-ms-wmv':   '.wmv',
+      'video/mp2t':       '.ts',
+      'video/x-m4v':      '.m4v',
+      'video/3gpp':       '.3gp',
+    };
+    const guessed = mimeMap[file.type];
+    if (guessed) {
+      ext = guessed;
+      filename = 'video' + ext; // clean fallback name
+    }
+  }
+
+  if (!SUPPORTED.has(ext)) { alert(`Unsupported: ${ext} (${file.type})`); return; }
   if (currentJobId) { clearInterval(pollTimer); clearInterval(elapsedTimer); fetch(`/cleanup/${currentJobId}/`, { method:'POST' }); clearSession(); }
 
   pendingFile = file;
@@ -287,13 +312,48 @@ document.getElementById('completeBanner')?.classList.remove('active');
   document.getElementById('thumbPreview').classList.remove('active');
   document.getElementById('sizeCompare').classList.remove('active');
   // Video preview — static element in HTML, just populate it
-  if (videoObjectUrl) { URL.revokeObjectURL(videoObjectUrl); videoObjectUrl = null; }
-videoObjectUrl = URL.createObjectURL(file);
+if (videoObjectUrl) { URL.revokeObjectURL(videoObjectUrl); videoObjectUrl = null; }
+
 const videoEl = document.getElementById('videoPreviewEl');
 const previewWrap = document.getElementById('videoPreviewWrap');
 const previewSizeEl = document.getElementById('previewFileSize');
 if (previewSizeEl) previewSizeEl.textContent = humanSize(file.size);
-if (previewWrap) previewWrap.style.display = '';
+
+if (videoEl) {
+  // Full reset first — critical on Android
+  videoEl.pause();
+  videoEl.removeAttribute('src');
+  videoEl.load();
+
+  try {
+    videoObjectUrl = URL.createObjectURL(file);
+    videoEl.src = videoObjectUrl;
+    videoEl.load();
+
+    // Android Chrome needs this sequence to actually render
+    videoEl.addEventListener('loadedmetadata', () => {
+      if (previewWrap) previewWrap.style.display = '';
+      videoEl.muted = true;
+      videoEl.play().catch(() => {
+        // Autoplay blocked — fine, user taps play
+      });
+    }, { once: true });
+
+    // Fallback: show preview wrap after 2s even if metadata stalls
+    setTimeout(() => {
+      if (previewWrap) previewWrap.style.display = '';
+    }, 2000);
+
+    videoEl.onerror = () => {
+      // Blob failed — hide broken preview gracefully
+      if (previewWrap) previewWrap.style.display = 'none';
+    };
+
+  } catch (e) {
+    // createObjectURL failed — hide preview, still allow upload
+    if (previewWrap) previewWrap.style.display = 'none';
+  }
+}
 
 if (videoEl) {
   // Reset before assigning — avoids stale state on mobile
@@ -365,9 +425,19 @@ async function startConvert() {
 
   const customName = document.getElementById('outputFilename').value.trim() || file.name.replace(/\.[^/.]+$/, '');
 
-  const formData = new FormData();
-  formData.append('file', file);
-  formData.append('output_format', outputFormat.value);
+// Re-read the file as ArrayBuffer first — fixes Android content URI stale handle
+let uploadFile = file;
+try {
+  const buffer = await file.arrayBuffer();
+  uploadFile = new File([buffer], filename || file.name, { type: file.type || 'video/mp4' });
+} catch (e) {
+  // arrayBuffer() failed — use original file object and hope for the best
+  uploadFile = file;
+}
+
+const formData = new FormData();
+formData.append('file', uploadFile);
+formData.append('output_format', outputFormat.value);
   formData.append('resolution', document.getElementById('settingRes').value);
   formData.append('quality',    document.getElementById('settingQuality').value);
   formData.append('codec',      document.getElementById('settingCodec').value);

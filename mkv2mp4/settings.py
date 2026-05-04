@@ -19,6 +19,7 @@ ALLOWED_HOSTS = [
     'exportready.is-a.dev',
     'www.exportready.is-a.dev',
     'converter-972n.onrender.com',
+    '192.168.253.134',
 ]
 CSRF_TRUSTED_ORIGINS = [
     'https://exportready.is-a.dev',
