@@ -17,6 +17,7 @@ class JobRecord(models.Model):
         ordering = ['-created_at']
 
 
+
 class Visitor(models.Model):
     visitor_id   = models.CharField(max_length=64, unique=True)  # UUID stored in cookie
     first_seen   = models.FloatField()   # unix timestamp
@@ -77,6 +78,19 @@ class CreditOrder(models.Model):
     status          = models.CharField(max_length=16, choices=STATUS_CHOICES, default='pending')
     created_at      = models.DateTimeField(auto_now_add=True)
     paid_at         = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+
+# AFTER (add this new model at the bottom of models.py)
+class Feedback(models.Model):
+    RATING_CHOICES = [(1,'1'),(2,'2'),(3,'3'),(4,'4'),(5,'5')]
+    user       = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
+    job        = models.ForeignKey(JobRecord, on_delete=models.SET_NULL, null=True, blank=True)
+    rating     = models.IntegerField(choices=RATING_CHOICES)
+    message    = models.TextField(blank=True, default='')
+    created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
         ordering = ['-created_at']

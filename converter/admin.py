@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import JobRecord
+from .models import JobRecord, Feedback
 
 
 @admin.register(JobRecord)
@@ -23,3 +23,10 @@ class JobRecordAdmin(admin.ModelAdmin):
         import datetime
         return datetime.datetime.fromtimestamp(obj.created_at).strftime('%Y-%m-%d %H:%M:%S')
     created_at_human.short_description = 'Created at'
+
+
+@admin.register(Feedback)
+class FeedbackAdmin(admin.ModelAdmin):
+    list_display  = ('created_at', 'rating', 'user', 'message', 'job')
+    list_filter   = ('rating',)
+    ordering      = ('-created_at',)

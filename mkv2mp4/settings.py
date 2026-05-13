@@ -20,6 +20,7 @@ ALLOWED_HOSTS = [
     'www.exportready.is-a.dev',
     'converter-972n.onrender.com',
     '192.168.253.134',
+    'exportready.xyz',
 ]
 CSRF_TRUSTED_ORIGINS = [
     'https://exportready.is-a.dev',
@@ -41,7 +42,6 @@ INSTALLED_APPS = [
     'allauth.socialaccount',
     'allauth.socialaccount.providers.google',
 ]
-
 
 SITE_ID = 1
 AUTHENTICATION_BACKENDS = [
@@ -65,6 +65,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',  # ADD
     'allauth.account.middleware.AccountMiddleware',
+    'converter.middleware.SessionTimeoutMiddleware',
 ]
 
 # Session engine — file-based, no DB needed
@@ -171,3 +172,6 @@ CSRF_TRUSTED_ORIGINS = [
 ]
 
 SOCIALACCOUNT_LOGIN_ON_GET = True
+
+# Session expires after 60 seconds of inactivity
+SESSION_INACTIVITY_TIMEOUT = 15 * 60  # 15 minutes

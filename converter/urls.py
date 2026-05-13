@@ -31,5 +31,6 @@ urlpatterns = [
     path('history/', views.export_history, name='export_history'),
     path('import-drive/', views.import_drive, name='import_drive'),
     path('health/', views.health, name='health'),
+    path('feedback/', views.submit_feedback, name='submit_feedback'),
     
 ]
