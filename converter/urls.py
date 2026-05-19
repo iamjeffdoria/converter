@@ -33,4 +33,5 @@ urlpatterns = [
     path('health/', views.health, name='health'),
     path('feedback/', views.submit_feedback, name='submit_feedback'),
     
+    
 ]
