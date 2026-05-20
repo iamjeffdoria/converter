@@ -32,6 +32,7 @@ const SUPPORTED   = new Set(['.mkv','.mp4','.avi','.mov','.webm','.flv','.wmv','
 const SESSION_KEY = 'vc_active_job';
 
 
+
 // ── SESSION ──
 function saveSession(jobId, filename, fmt) {
   sessionStorage.setItem(SESSION_KEY, JSON.stringify({ jobId, filename, fmt, ts: Date.now() }));
@@ -1431,14 +1432,6 @@ function confirmLogout() {
   document.body.appendChild(modal);
 }
 
-function closeLogoutConfirm() {
-  const modal = document.getElementById('logoutConfirmModal');
-  if (modal) modal.remove();
-}
-
-function performLogout() {
-  window.location.href = '/logout/';
-}
 
 function closeLogoutConfirm() {
   const modal = document.getElementById('logoutConfirmModal');
@@ -1456,3 +1449,4 @@ function openExportModal() {
 function closeExportModal() {
   document.getElementById('exportCompleteModal').style.display = 'none';
 }
+

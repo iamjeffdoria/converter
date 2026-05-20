@@ -1963,38 +1963,36 @@ def import_drive(request):
     })
 
 
-@require_POST
-def submit_feedback(request):
-    import json
-    try:
-        body = json.loads(request.body)
-    except Exception:
-        return JsonResponse({'error': 'Invalid JSON'}, status=400)
-
-    rating = body.get('rating')
-    message = body.get('message', '').strip()
-    job_id = body.get('job_id', '').strip()
-
-    if not rating or not isinstance(rating, int) or rating not in range(1, 6):
-        return JsonResponse({'error': 'Rating must be 1–5'}, status=400)
-
-    job = None
-    if job_id:
-        try:
-            job = JobRecord.objects.get(job_id=job_id)
-        except JobRecord.DoesNotExist:
-            pass
-
-    Feedback.objects.create(
-        user=request.user if request.user.is_authenticated else None,
-        job=job,
-        rating=rating,
-        message=message[:1000],
-    )
-    return JsonResponse({'ok': True})
 
 def health(request):
     return HttpResponse("ok")
 
+@csrf_exempt
+@require_POST
+def submit_feedback(request):
+    try:
+        data = json.loads(request.body)
+        category = data.get('category', '').strip()
+        message = data.get('message', '').strip()
 
+        if not category:
+            return JsonResponse({'error': 'Please select a category.'}, status=400)
+        if len(message) < 10:
+            return JsonResponse({'error': 'Message must be at least 10 characters.'}, status=400)
 
+        user_agent = request.META.get('HTTP_USER_AGENT', '')[:500]
+        x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
+        ip = x_forwarded_for.split(',')[0].strip() if x_forwarded_for else request.META.get('REMOTE_ADDR')
+
+        Feedback.objects.create(
+            user=request.user if request.user.is_authenticated else None,
+            category=category,
+            message=message,
+            user_agent=user_agent,
+            ip_address=ip[:45]
+        )
+
+        return JsonResponse({'success': True, 'message': '✅ Thank you! Feedback received.'})
+
+    except Exception:
+        return JsonResponse({'error': 'Server error. Please try again.'}, status=500)

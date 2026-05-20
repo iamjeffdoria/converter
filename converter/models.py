@@ -83,14 +83,35 @@ class CreditOrder(models.Model):
         ordering = ['-created_at']
 
 
-# AFTER (add this new model at the bottom of models.py)
 class Feedback(models.Model):
-    RATING_CHOICES = [(1,'1'),(2,'2'),(3,'3'),(4,'4'),(5,'5')]
-    user       = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
-    job        = models.ForeignKey(JobRecord, on_delete=models.SET_NULL, null=True, blank=True)
-    rating     = models.IntegerField(choices=RATING_CHOICES)
-    message    = models.TextField(blank=True, default='')
+    CATEGORY_CHOICES = [
+        ('export-quality', 'Export quality'),
+        ('speed', 'Conversion speed'),
+        ('ai-chat', 'Export AI'),
+        ('ui', 'Interface / usability'),
+        ('bug', 'Bug report'),
+        ('other', 'Other'),
+    ]
+
+    user = models.ForeignKey(
+        User, 
+        on_delete=models.SET_NULL, 
+        null=True, 
+        blank=True,
+        related_name='feedback'
+    )
+    category = models.CharField(
+        max_length=20, 
+        choices=CATEGORY_CHOICES
+    )
+    message = models.TextField()
     created_at = models.DateTimeField(auto_now_add=True)
+    user_agent = models.TextField(blank=True, default='')
+    ip_address = models.GenericIPAddressField(blank=True, null=True)
 
     class Meta:
         ordering = ['-created_at']
+        verbose_name_plural = "Feedback"
+
+    def __str__(self):
+        return f"[{self.category}] {self.message[:60]}..."

@@ -8,7 +8,10 @@
   <link rel="icon" type="image/png" href="{% static 'assets/img/converter-logo.png' %}">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
   <link rel="stylesheet" href="{% static 'assets/css/converter.css' %}">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" defer></script>
 </head>
 <body>
 <div class="page">
@@ -25,11 +28,11 @@
 
       {% if user.is_authenticated %}
         {% if credits > 0 %}
-          <span class="credit-badge paid">⚡ {{ credits }} credits</span>
+          <span class="credit-badge paid"><i class="bi bi-lightning-fill"></i> {{ credits }} credits</span>
         {% elif free_remaining > 0 %}
           <span class="credit-badge free">{{ free_remaining }} exports left</span>
         {% endif %}
-        <span class="user-pill">👤 {{ user.username }}</span>
+        <span class="user-pill"><i class="bi bi-person-fill"></i> {{ user.username }}</span>
       {% endif %}
 
       <div class="gpu-pill">
@@ -44,11 +47,17 @@
         Credits & Pricing
       </a> -->
 
-      {% if user.is_authenticated %}
-        <a href="#" onclick="openHistoryModal(); return false;" class="nav-btn nav-btn-ghost">📋 History</a>
+    {% if user.is_authenticated %}
+        <a href="#" onclick="openHistoryModal(); return false;" class="nav-btn nav-btn-ghost"><i class="bi bi-clock-history"></i> History</a>
+       <button class="nav-btn nav-btn-ghost feedback-btn" data-bs-toggle="modal" data-bs-target="#feedbackModal">
+          <i class="bi bi-chat-dots"></i> Feedback
+      </button>
         <a href="#" onclick="confirmLogout(); return false;" class="nav-btn nav-btn-danger">Sign Out</a>
       {% else %}
         <a href="/login/"    class="nav-btn nav-btn-ghost">Sign In</a>
+       <button class="nav-btn nav-btn-ghost feedback-btn" data-bs-toggle="modal" data-bs-target="#feedbackModal">
+          <i class="bi bi-chat-dots"></i> Feedback
+      </button>
         <a href="/register/" class="nav-btn nav-btn-solid">Register</a>
       {% endif %}
 
@@ -59,35 +68,40 @@
       <span></span><span></span><span></span>
     </button>
 
-    <!-- Mobile dropdown -->
-    <div class="mobile-menu" id="mobileMenu">
-      {% if user.is_authenticated %}
-        <div class="mobile-user-info">Signed in as <strong>{{ user.username }}</strong></div>
-        {% if credits > 0 %}
-          <div class="mobile-credits credit-badge paid" style="border:1px solid rgba(212,255,0,0.3);text-align:center">⚡ {{ credits }} credits</div>
-        {% elif free_remaining > 0 %}
-          <div class="mobile-credits credit-badge free" style="border:1px solid var(--border-mid);text-align:center">{{ free_remaining }} exports left</div>
+      <!-- Mobile dropdown -->
+      <div class="mobile-menu" id="mobileMenu">
+        {% if user.is_authenticated %}
+          <div class="mobile-user-info">Signed in as <strong>{{ user.username }}</strong></div>
+          {% if credits > 0 %}
+            <div class="mobile-credits credit-badge paid" style="border:1px solid rgba(212,255,0,0.3);text-align:center">⚡ {{ credits }} credits</div>
+          {% elif free_remaining > 0 %}
+            <div class="mobile-credits credit-badge free" style="border:1px solid var(--border-mid);text-align:center">{{ free_remaining }} exports left</div>
+          {% endif %}
+          <a href="/pricing/" class="pricing-link" style="display:flex">
+            <span class="pulse-dot"></span>Credits & Pricing
+          </a>
+          <a href="#" onclick="openHistoryModal(); return false;" class="nav-btn nav-btn-ghost" style="display:block;text-align:center">
+            <i class="bi bi-clock-history"></i> History
+          </a>
+          <button class="nav-btn nav-btn-ghost feedback-btn" data-bs-toggle="modal" data-bs-target="#feedbackModal" style="display:block;text-align:center;width:100%;">
+            <i class="bi bi-chat-dots"></i> Feedback
+          </button>
+          <a href="#" onclick="confirmLogout(); return false;" class="nav-btn nav-btn-danger" style="display:block;text-align:center">Sign Out</a>
+        {% else %}
+          <a href="/pricing/" class="pricing-link" style="display:flex">
+            <span class="pulse-dot"></span>Credits & Pricing
+          </a>
+          <a href="/login/"    class="nav-btn nav-btn-ghost" style="display:block;text-align:center">Sign In</a>
+          <a href="/register/" class="nav-btn nav-btn-solid" style="display:block;text-align:center">Register Free</a>
         {% endif %}
-        <a href="/pricing/" class="pricing-link" style="display:flex">
-          <span class="pulse-dot"></span>Credits & Pricing
-        </a>
-        <a href="#" onclick="openHistoryModal(); return false;" class="nav-btn nav-btn-ghost" style="display:block;text-align:center">📋 History</a>
-        <a href="#" onclick="confirmLogout(); return false;" class="nav-btn nav-btn-danger" style="display:block;text-align:center">Sign Out</a>
-      {% else %}
-        <a href="/pricing/" class="pricing-link" style="display:flex">
-          <span class="pulse-dot"></span>Credits & Pricing
-        </a>
-        <a href="/login/"    class="nav-btn nav-btn-ghost" style="display:block;text-align:center">Sign In</a>
-        <a href="/register/" class="nav-btn nav-btn-solid" style="display:block;text-align:center">Register Free</a>
-      {% endif %}
-    </div>
+      </div>
   </header>
 
   <main>
 
     <!-- ── RECONNECT BANNER ── -->
     <div id="reconnectBanner" class="reconnect-banner">
-      <div class="reconnect-spin">🔄</div>
+      <div class="reconnect-spin"><i class="bi bi-arrow-repeat"></i></div>
       <div class="reconnect-info">
         <div class="reconnect-title">Export In Progress</div>
         <div class="reconnect-sub">Still running: <strong id="reconnectFilename">—</strong> — tap to reconnect</div>
@@ -138,7 +152,7 @@
 
         <div id="dropZone" class="drop-zone" tabindex="0" role="button" aria-label="Upload video file">
           <div class="drop-inner">
-            <div class="drop-icon-wrap">🎬</div>
+            <div class="drop-icon-wrap"><i class="bi bi-film"></i></div>
             <div class="drop-headline">Drop your video here</div>
             <div class="drop-sub">
               MKV · MP4 · MOV · AVI · WEBM · and more — Free: 2GB · Paid: 4GB
@@ -147,9 +161,9 @@
 
             <!-- ── BROWSE FILES DROPDOWN ── -->
             <div class="btn-browse-wrap" onclick="event.stopPropagation()">
-              <button class="btn-browse" onclick="toggleBrowseMenu(event)">
-                📂 Browse Files ▾
-              </button>
+            <button class="btn-browse" onclick="toggleBrowseMenu(event)">
+              <i class="bi bi-folder"></i> Browse Files ▾
+            </button>
               <div class="browse-dropdown" id="browseDropdown">
                 <button class="browse-option" onclick="event.stopPropagation(); closeBrowseMenu(); setTimeout(() => fileInput.click(), 50)">
                   💻 From Device
@@ -186,7 +200,7 @@
        <!-- CONVERSION PANEL -->
         <div id="panel" class="panel">
           <div class="panel-header">
-            <span class="file-icon">🎞</span>
+            <span class="file-icon"><i class="bi bi-film"></i></span>
             <span id="panelFilename" class="panel-filename">—</span>
             <span id="conversionTag" class="conversion-badge">—</span>
             <span id="panelSize" class="panel-filesize">—</span>
@@ -271,7 +285,7 @@
                 </div>
 
                 <div id="errorBox" class="error-box"></div>
-                <div id="errorBox" class="error-box"></div>
+               
 
 
               </div>
@@ -386,10 +400,7 @@
                 <span class="platform-chip-detail">1080p · 60s</span>
               </button>
               <button class="platform-chip" onclick="applyPlatformPreset('twitter')" title="1080p · MP4 · under 512MB">
-                <span class="platform-chip-name">Twitter/X</span>
-                <span class="platform-chip-detail">1080p · 512MB</span>
-              </button>
-              <button class="platform-chip" onclick="applyPlatformPreset('discord')" title="720p · MP4 · under 10MB free / 50MB Nitro">
+                <span class="platform-chip-name">Twitter/X</span>file itle="720p · MP4 · under 10MB free / 50MB Nitro">
                 <span class="platform-chip-name">Discord</span>
                 <span class="platform-chip-detail">720p · 10MB</span>
               </button>
@@ -541,13 +552,7 @@
 
   </main>
 
-  <footer>
-    <div class="footer-left">
-      <span>Files stay on your browser</span>
-      <div class="footer-dot"></div>
-      <span>Built for creators</span>
-    </div>
-  </footer>
+
 </div>
 
 <!-- ── EXPORT COMPLETE MODAL ── -->
@@ -566,7 +571,7 @@
     animation:fadeIn 0.2s ease;
   ">
     <div id="completeBanner" class="complete-banner" style="margin-bottom:16px;">
-      <div class="complete-icon">✅</div>
+      <div class="complete-icon"><i class="bi bi-check-circle-fill" style="font-size:2.2rem;color:var(--success)"></i></div>
       <div>
         <div class="complete-title">Export Complete</div>
         <div id="completeSubtitle" class="complete-sub">—</div>
@@ -726,7 +731,7 @@
     
     <!-- Header - Only Title and Close -->
     <div class="modal-header">
-      <div class="title">📋 Export History</div>
+      <div class="title"><i class="bi bi-clock-history"></i> Export History</div>
       <button onclick="closeHistoryModal()">✕</button>
     </div>
 
@@ -741,6 +746,118 @@
     </div>
   </div>
 </div>
+<!-- ── FEEDBACK MODAL ── -->
+<div class="modal fade" id="feedbackModal" tabindex="-1" aria-labelledby="feedbackModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content" style="background: var(--surface); border: 1px solid var(--border-mid); border-top: 3px solid var(--accent); border-radius: 0;">
+      <div class="modal-header" style="border-bottom: 1px solid var(--border-mid); background: var(--surface2); padding: 14px 20px;">
+        <span id="feedbackModalLabel" style="font-family: var(--mono); font-size: 9px; font-weight: 700; letter-spacing: 0.2em; text-transform: uppercase; color: var(--accent);">✦ Share Feedback</span>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close" style="filter: var(--text) brightness(0);"></button>
+      </div>
+
+      <div class="modal-body" style="padding: 24px 24px 16px;">
+        <div style="font-family: var(--sans); font-weight: 800; font-size: clamp(18px, 4vw, 22px); letter-spacing: -0.03em; color: var(--text); margin-bottom: 6px; line-height: 1.1;">
+          How are we doing?
+        </div>
+        <div style="font-family: var(--mono); font-size: 10px; color: var(--muted); margin-bottom: 20px; line-height: 1.7;">
+          Your feedback helps us improve ExportReady.
+        </div>
+
+    
+
+        <!-- Category -->
+        <div style="margin-bottom: 18px;">
+          <div style="font-family: var(--mono); font-size: 8px; font-weight: 700; letter-spacing: 0.18em; text-transform: uppercase; color: var(--text-mid); margin-bottom: 8px;">
+            Category
+          </div>
+          <select id="feedbackCategory" class="setting-select" style="width: 100%;">
+            <option value="">— Select one —</option>
+            <option value="export-quality">Export quality</option>
+            <option value="speed">Conversion speed</option>
+            <option value="ai-chat">Export AI</option>
+            <option value="ui">Interface / usability</option>
+            <option value="bug">Bug report</option>
+            <option value="other">Other</option>
+          </select>
+        </div>
+
+        <!-- Message -->
+        <div style="margin-bottom: 8px;">
+          <div style="font-family: var(--mono); font-size: 8px; font-weight: 700; letter-spacing: 0.18em; text-transform: uppercase; color: var(--text-mid); margin-bottom: 8px;">
+            Message
+          </div>
+          <textarea id="feedbackMessage" rows="4" placeholder="Tell us what you think, what broke, or what you'd love to see..." style="width: 100%; font-family: var(--mono); font-size: 11px; background: var(--bg); color: var(--text); border: 1px solid var(--border-mid); padding: 10px 12px; outline: none; resize: vertical; transition: border-color 0.15s;" onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border-mid)'"></textarea>
+        </div>
+
+        <div id="feedbackError" style="display: none; font-family: var(--mono); font-size: 10px; color: var(--danger); margin-top: 8px;"></div>
+        <div id="feedbackSuccess" style="display: none; font-family: var(--mono); font-size: 10px; color: var(--success); margin-top: 8px;"></div>
+      </div>
+
+      <div class="modal-footer" style="border-top: 1px solid var(--border-mid); background: var(--surface2); padding: 14px 20px; gap: 8px; display: flex; justify-content: flex-end;">
+        <button type="button" data-bs-dismiss="modal" class="btn btn-ghost">Cancel</button>
+        <button type="button" onclick="submitFeedback()" style="font-family: var(--mono); font-size: 9px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; padding: 9px 20px; background: var(--accent); color: #fff; border: 1px solid var(--accent); cursor: pointer;">✦ Send Feedback</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+
+async function submitFeedback() {
+    const category = document.getElementById('feedbackCategory').value;
+    const message  = document.getElementById('feedbackMessage').value.trim();
+    const errorEl   = document.getElementById('feedbackError');
+    const successEl = document.getElementById('feedbackSuccess');
+
+    errorEl.style.display = 'none';
+    successEl.style.display = 'none';
+
+    if (!category) {
+        errorEl.textContent = 'Please select a category.';
+        errorEl.style.display = 'block';
+        return;
+    }
+    if (message.length < 10) {
+        errorEl.textContent = 'Please write a longer message (min 10 characters).';
+        errorEl.style.display = 'block';
+        return;
+    }
+
+    try {
+        const resp = await fetch('/submit-feedback/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken')
+            },
+            body: JSON.stringify({ category, message })
+        });
+
+        const data = await resp.json();
+
+        if (resp.ok && data.success) {
+            successEl.textContent = data.message;
+            successEl.style.display = 'block';
+
+            // Clear form
+            document.getElementById('feedbackMessage').value = '';
+            document.getElementById('feedbackCategory').value = '';
+
+            // Auto close modal
+            setTimeout(() => {
+                const modal = bootstrap.Modal.getInstance(document.getElementById('feedbackModal'));
+                if (modal) modal.hide();
+            }, 2000);
+        } else {
+            errorEl.textContent = data.error || 'Failed to send feedback.';
+            errorEl.style.display = 'block';
+        }
+    } catch (e) {
+        errorEl.textContent = 'Network error. Please try again.';
+        errorEl.style.display = 'block';
+    }
+}
+</script>
 <script src="{% static 'assets/js/converter.js' %}"></script>
 </body>
 </html>
