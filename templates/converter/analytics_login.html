@@ -5,178 +5,281 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Sign In — Video Converter</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
 <style>
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 :root {
-  --bg:       #0c0c0c;
-  --surface:  #111111;
-  --surface2: #171717;
-  --surface3: #1e1e1e;
-  --border:   rgba(255,255,255,0.07);
-  --border2:  rgba(255,255,255,0.12);
-  --text:     #ffffff;
-  --muted:    #cccccc;
-  --faint:    #888888;
-  --blue:     #4f8ef7;
-  --green:    #34d399;
-  --red:      #f87171;
-  --mono:     'Geist Mono', 'Courier New', monospace;
+  --bg:         #f5f5f7;
+  --surface:    #ffffff;
+  --border:     #e5e7eb;
+  --border2:    #d1d5db;
+  --text:       #111827;
+  --muted:      #374151;
+  --faint:      #6b7280;
+  --fainter:    #9ca3af;
+  --purple:     #7c3aed;
+  --purple-lt:  #ede9fe;
+  --purple-mid: #8b5cf6;
+  --purple-dk:  #5b21b6;
+  --green:      #10b981;
+  --red:        #ef4444;
+  --red-lt:     #fef2f2;
+  --sans:       'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif;
 }
 
 html, body {
+  height: 100%;
   min-height: 100vh;
   background: var(--bg);
   color: var(--text);
-  font-family: var(--mono);
+  font-family: var(--sans);
   -webkit-font-smoothing: antialiased;
+}
+
+.layout {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  min-height: 100vh;
+}
+
+/* ── LEFT PANEL ── */
+.panel-left {
+  background: var(--purple);
   display: flex;
-  align-items: center;
-  justify-content: center;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 48px 56px;
   position: relative;
   overflow: hidden;
 }
 
-/* Subtle grid background */
-body::before {
+.panel-left::before {
   content: '';
-  position: fixed;
-  inset: 0;
-  background-image:
-    linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px);
-  background-size: 48px 48px;
+  position: absolute;
+  top: -120px;
+  right: -120px;
+  width: 420px;
+  height: 420px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.05);
   pointer-events: none;
-  z-index: 0;
 }
 
-/* Radial glow behind the card */
-body::after {
+.panel-left::after {
   content: '';
-  position: fixed;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  width: 600px;
-  height: 600px;
-  background: radial-gradient(ellipse at center, rgba(79,142,247,0.04) 0%, transparent 70%);
+  position: absolute;
+  bottom: -80px;
+  left: -80px;
+  width: 320px;
+  height: 320px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.04);
   pointer-events: none;
-  z-index: 0;
 }
 
-.card {
+.left-brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
   position: relative;
   z-index: 1;
-  width: 100%;
-  max-width: 380px;
-  margin: 24px;
+}
+
+.brand-icon {
+  width: 40px;
+  height: 40px;
+  background: rgba(255,255,255,0.15);
+  border: 1px solid rgba(255,255,255,0.2);
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: 600;
+  color: #fff;
+  letter-spacing: -0.03em;
+  flex-shrink: 0;
+}
+
+.brand-name {
+  font-size: 17px;
+  font-weight: 600;
+  color: #fff;
+  letter-spacing: -0.02em;
+}
+
+.left-body {
+  position: relative;
+  z-index: 1;
+}
+
+.left-body h2 {
+  font-size: 32px;
+  font-weight: 600;
+  color: #fff;
+  letter-spacing: -0.03em;
+  line-height: 1.2;
+  margin-bottom: 16px;
+}
+
+.left-body p {
+  font-size: 15px;
+  color: rgba(255,255,255,0.65);
+  line-height: 1.6;
+  max-width: 340px;
+}
+
+.stat-row {
+  display: flex;
+  gap: 32px;
+  margin-top: 40px;
+}
+
+.stat {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.stat-num {
+  font-size: 26px;
+  font-weight: 600;
+  color: #fff;
+  letter-spacing: -0.03em;
+}
+
+.stat-label {
+  font-size: 12px;
+  color: rgba(255,255,255,0.5);
+  font-weight: 400;
+}
+
+.left-footer {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: rgba(255,255,255,0.4);
+}
+
+.green-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--green);
+  animation: blink 2s ease infinite;
+  flex-shrink: 0;
+}
+
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:.3} }
+
+/* ── RIGHT PANEL ── */
+.panel-right {
   background: var(--surface);
-  border: 1px solid var(--border2);
-  border-radius: 12px;
-  padding: 36px 32px;
-  animation: fadeUp .35s ease both;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 64px;
+  animation: fadeIn .35s ease both;
 }
 
-@keyframes fadeUp {
-  from { opacity: 0; transform: translateY(12px); }
-  to   { opacity: 1; transform: translateY(0); }
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateX(10px); }
+  to   { opacity: 1; transform: translateX(0); }
 }
 
-/* Header */
-.header {
-  margin-bottom: 32px;
+.form-wrap {
+  width: 100%;
+  max-width: 400px;
 }
 
-.app-name {
+.form-header {
+  margin-bottom: 36px;
+}
+
+.form-tag {
   font-size: 11px;
-  color: var(--faint);
-  letter-spacing: .1em;
+  font-weight: 500;
+  color: var(--purple);
   text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-bottom: 10px;
+}
+
+.form-title {
+  font-size: 26px;
+  font-weight: 600;
+  letter-spacing: -0.03em;
+  color: var(--text);
+  line-height: 1.2;
   margin-bottom: 6px;
 }
 
-.app-name span {
-  color: var(--blue);
-}
-
-.title {
-  font-size: 20px;
-  font-weight: 300;
-  letter-spacing: -0.02em;
-  color: var(--text);
-  line-height: 1.2;
-}
-
-.subtitle {
-  font-size: 11px;
+.form-sub {
+  font-size: 14px;
   color: var(--faint);
-  margin-top: 6px;
-  font-weight: 300;
 }
 
 /* Form */
-.form { display: flex; flex-direction: column; gap: 14px; }
+.form { display: flex; flex-direction: column; gap: 18px; }
 
-.field { display: flex; flex-direction: column; gap: 5px; }
+.field { display: flex; flex-direction: column; gap: 7px; }
 
 .label {
-  font-size: 10px;
-  color: var(--faint);
-  letter-spacing: .08em;
-  text-transform: uppercase;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--muted);
 }
 
 .input-wrap { position: relative; }
 
 .input {
   width: 100%;
-  background: var(--surface2);
-  border: 1px solid var(--border);
-  border-radius: 7px;
-  padding: 10px 12px;
-  font-size: 13px;
-  font-family: var(--mono);
-  font-weight: 300;
+  background: var(--bg);
+  border: 1px solid var(--border2);
+  border-radius: 9px;
+  padding: 12px 16px;
+  font-size: 14px;
+  font-family: var(--sans);
+  font-weight: 400;
   color: var(--text);
   outline: none;
-  transition: border-color .15s, background .15s;
+  transition: border-color .15s, box-shadow .15s, background .15s;
 }
-.input::placeholder { color: var(--faint); }
+.input::placeholder { color: var(--fainter); }
 .input:focus {
-  border-color: rgba(79,142,247,0.4);
-  background: var(--surface3);
+  border-color: var(--purple);
+  background: #fff;
+  box-shadow: 0 0 0 3px rgba(124,58,237,0.1);
 }
 
-/* Password toggle */
 .pw-toggle {
   position: absolute;
-  right: 10px;
+  right: 14px;
   top: 50%;
   transform: translateY(-50%);
   background: none;
   border: none;
   cursor: pointer;
   color: var(--faint);
-  padding: 2px 4px;
-  line-height: 1;
-  font-family: var(--mono);
-  font-size: 10px;
-  letter-spacing: .04em;
-  text-transform: uppercase;
+  font-family: var(--sans);
+  font-size: 12px;
+  font-weight: 500;
   transition: color .15s;
 }
-.pw-toggle:hover { color: var(--muted); }
+.pw-toggle:hover { color: var(--purple); }
 
-/* Error */
 .error-msg {
   display: none;
-  font-size: 11px;
+  font-size: 13px;
   color: var(--red);
-  background: rgba(248,113,113,.07);
-  border: 1px solid rgba(248,113,113,.15);
-  border-radius: 6px;
-  padding: 8px 12px;
+  background: var(--red-lt);
+  border: 1px solid #fecaca;
+  border-radius: 8px;
+  padding: 10px 14px;
   animation: shake .3s ease;
 }
 .error-msg.show { display: block; }
@@ -187,185 +290,195 @@ body::after {
   75%    { transform: translateX(4px); }
 }
 
-/* Submit */
 .btn-submit {
   width: 100%;
   margin-top: 4px;
-  padding: 11px 16px;
-  background: var(--text);
+  padding: 13px 16px;
+  background: var(--purple);
   border: none;
-  border-radius: 7px;
-  font-family: var(--mono);
-  font-size: 13px;
-  font-weight: 400;
-  color: var(--bg);
+  border-radius: 9px;
+  font-family: var(--sans);
+  font-size: 15px;
+  font-weight: 500;
+  color: #fff;
   cursor: pointer;
-  letter-spacing: .02em;
-  transition: opacity .15s, transform .1s;
+  letter-spacing: -0.01em;
+  transition: background .15s, transform .1s, box-shadow .15s;
   position: relative;
   overflow: hidden;
 }
-.btn-submit:hover   { opacity: .9; }
+.btn-submit:hover   { background: var(--purple-dk); box-shadow: 0 4px 14px rgba(124,58,237,0.3); }
 .btn-submit:active  { transform: scale(.99); }
-.btn-submit:disabled {
-  opacity: .4;
-  cursor: not-allowed;
-  transform: none;
-}
+.btn-submit:disabled { opacity: .5; cursor: not-allowed; transform: none; box-shadow: none; }
 
-/* Spinner inside button */
 .btn-spinner {
   display: none;
-  width: 14px; height: 14px;
-  border: 1.5px solid rgba(0,0,0,0.2);
-  border-top-color: var(--bg);
+  width: 16px; height: 16px;
+  border: 2px solid rgba(255,255,255,0.3);
+  border-top-color: #fff;
   border-radius: 50%;
   animation: spin .5s linear infinite;
   position: absolute;
-  left: 50%;
-  top: 50%;
+  left: 50%; top: 50%;
   transform: translate(-50%,-50%);
 }
 @keyframes spin { to { transform: translate(-50%,-50%) rotate(360deg); } }
-.btn-submit.loading .btn-text   { opacity: 0; }
+.btn-submit.loading .btn-text    { opacity: 0; }
 .btn-submit.loading .btn-spinner { display: block; }
 
-/* Divider */
-.divider {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin: 2px 0;
-}
-.divider::before, .divider::after {
-  content: '';
-  flex: 1;
-  height: 1px;
-  background: var(--border);
-}
-.divider span {
-  font-size: 10px;
-  color: var(--faint);
-  letter-spacing: .06em;
-}
-
-/* Footer */
-.footer {
+.form-footer {
   margin-top: 24px;
-  padding-top: 18px;
+  padding-top: 20px;
   border-top: 1px solid var(--border);
   display: flex;
   align-items: center;
   justify-content: space-between;
 }
 
-.online {
-  display: flex;
+.restricted-badge {
+  display: inline-flex;
   align-items: center;
   gap: 5px;
-  font-size: 10px;
-  color: var(--faint);
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--purple);
+  background: var(--purple-lt);
+  border-radius: 99px;
+  padding: 4px 10px;
 }
-.green-dot {
-  width: 5px; height: 5px;
-  border-radius: 50%;
-  background: var(--green);
-  animation: blink 2s ease infinite;
-}
-@keyframes blink { 0%,100%{opacity:1} 50%{opacity:.3} }
 
 .version {
-  font-size: 10px;
-  color: var(--faint);
-  opacity: .5;
+  font-size: 12px;
+  color: var(--fainter);
 }
 
-
+@media (max-width: 768px) {
+  .layout { grid-template-columns: 1fr; }
+  .panel-left { display: none; }
+  .panel-right { padding: 40px 28px; }
+}
 </style>
 </head>
 <body>
 
-<div class="card">
+<div class="layout">
 
-  <div class="header">
-    <div class="app-name">Video Converter <span>/ Analytics</span></div>
-    <div class="title">Sign in</div>
-    <div class="subtitle">Restricted — authorised personnel only</div>
-  </div>
+  <!-- Left branding panel -->
+  <div class="panel-left">
+    <div class="left-brand">
+      <div class="brand-icon">ER</div>
+      <div class="brand-name">ExportReady</div>
+    </div>
 
-  <form class="form" id="loginForm" method="POST" action="{% url 'analytics_login' %}">
-    {% csrf_token %}
+    <div class="left-body">
+      <h2>Analytics &amp; insights for your converter</h2>
+      <p>Monitor jobs, track users, and review feedback — all in one place. Restricted to authorised personnel.</p>
 
-    <div class="field">
-      <label class="label" for="username">Username</label>
-      <div class="input-wrap">
-        <input
-          class="input"
-          type="text"
-          id="username"
-          name="username"
-          placeholder="admin"
-          autocomplete="username"
-          autocapitalize="none"
-          value="{{ request.POST.username }}"
-          autofocus
-        >
+      <div class="stat-row">
+        <div class="stat">
+          <span class="stat-num">35</span>
+          <span class="stat-label">Registered users</span>
+        </div>
+        <div class="stat">
+          <span class="stat-num">18</span>
+          <span class="stat-label">New this week</span>
+        </div>
+        <div class="stat">
+          <span class="stat-num">29</span>
+          <span class="stat-label">New this month</span>
+        </div>
       </div>
     </div>
 
-    <div class="field">
-      <label class="label" for="password">Password</label>
-      <div class="input-wrap">
-        <input
-          class="input"
-          type="password"
-          id="password"
-          name="password"
-          placeholder="••••••••"
-          autocomplete="current-password"
-          style="padding-right: 52px"
-        >
-        <button type="button" class="pw-toggle" id="pwToggle" tabindex="-1">show</button>
-      </div>
-    </div>
-
-    {% if error %}
-    <div class="error-msg show" id="errorMsg">✕ &nbsp;{{ error }}</div>
-    {% else %}
-    <div class="error-msg" id="errorMsg"></div>
-    {% endif %}
-
-    <button type="submit" class="btn-submit" id="submitBtn">
-      <span class="btn-text">Sign in →</span>
-      <span class="btn-spinner"></span>
-    </button>
-
-  </form>
-
-  <div class="footer">
-    <div class="online">
+    <div class="left-footer">
       <span class="green-dot"></span>
-      Server online
+      Server online &nbsp;·&nbsp; v1.0.0
     </div>
-    <div class="version">v1.0.0</div>
   </div>
 
+  <!-- Right form panel -->
+  <div class="panel-right">
+    <div class="form-wrap">
+
+      <div class="form-header">
+        <div class="form-tag">Analytics Dashboard</div>
+        <div class="form-title">Sign in</div>
+        <div class="form-sub">Enter your credentials to continue</div>
+      </div>
+
+      <form class="form" id="loginForm" method="POST" action="{% url 'analytics_login' %}">
+        {% csrf_token %}
+
+        <div class="field">
+          <label class="label" for="username">Username</label>
+          <div class="input-wrap">
+            <input
+              class="input"
+              type="text"
+              id="username"
+              name="username"
+              placeholder="Enter your username"
+              autocomplete="username"
+              autocapitalize="none"
+              value="{{ request.POST.username }}"
+              autofocus
+            >
+          </div>
+        </div>
+
+        <div class="field">
+          <label class="label" for="password">Password</label>
+          <div class="input-wrap">
+            <input
+              class="input"
+              type="password"
+              id="password"
+              name="password"
+              placeholder="••••••••"
+              autocomplete="current-password"
+              style="padding-right: 56px"
+            >
+            <button type="button" class="pw-toggle" id="pwToggle" tabindex="-1">Show</button>
+          </div>
+        </div>
+
+        {% if error %}
+        <div class="error-msg show" id="errorMsg">{{ error }}</div>
+        {% else %}
+        <div class="error-msg" id="errorMsg"></div>
+        {% endif %}
+
+        <button type="submit" class="btn-submit" id="submitBtn">
+          <span class="btn-text">Sign in →</span>
+          <span class="btn-spinner"></span>
+        </button>
+
+      </form>
+
+      <div class="form-footer">
+        <div class="restricted-badge">
+          <svg width="11" height="11" viewBox="0 0 12 12" fill="none" aria-hidden="true">
+            <path d="M9 5H3V4a3 3 0 1 1 6 0v1zm1 0V4A4 4 0 0 0 2 4v1a1 1 0 0 0-1 1v4a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V6a1 1 0 0 0-1-1z" fill="currentColor"/>
+          </svg>
+          Authorised personnel only
+        </div>
+        <div class="version">v1.0.0</div>
+      </div>
+
+    </div>
+  </div>
 
 </div>
 
 <script>
-// ── PASSWORD TOGGLE ────────────────────────────────────────────────────────
 const pwInput  = document.getElementById('password');
 const pwToggle = document.getElementById('pwToggle');
 pwToggle.addEventListener('click', () => {
   const show = pwInput.type === 'password';
   pwInput.type         = show ? 'text' : 'password';
-  pwToggle.textContent = show ? 'hide' : 'show';
+  pwToggle.textContent = show ? 'Hide' : 'Show';
 });
 
-// ── CLIENT-SIDE VALIDATION + LOADING STATE ────────────────────────────────
-// Auth is handled entirely by Django on the backend (views.py).
-// JS only validates empty fields and shows a loading spinner.
 const form      = document.getElementById('loginForm');
 const submitBtn = document.getElementById('submitBtn');
 const errorMsg  = document.getElementById('errorMsg');
@@ -376,16 +489,14 @@ form.addEventListener('submit', (e) => {
 
   if (!username || !password) {
     e.preventDefault();
-    errorMsg.textContent = '✕ \u00a0Please fill in both fields.';
+    errorMsg.textContent = 'Please fill in both fields.';
     errorMsg.classList.add('show');
-    // Re-trigger shake
     errorMsg.style.animation = 'none';
     errorMsg.offsetHeight;
     errorMsg.style.animation = '';
     return;
   }
 
-  // Show loading state while the POST is in flight
   submitBtn.classList.add('loading');
   submitBtn.disabled = true;
 });
