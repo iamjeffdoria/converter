@@ -1279,6 +1279,21 @@ def analytics_api(request):
             'jobs':     JobRecord.objects.filter(user=u).count(),
             'isPaid':   credits > 0,
         })
+        # ── Feedback ──────────────────────────────────────────────────────────
+    feedback_list = []
+    for fb in Feedback.objects.select_related('user').order_by('-created_at')[:100]:
+        age_s = int(now - fb.created_at.timestamp())
+        if age_s < 60:      fb_when = f'{age_s}s ago'
+        elif age_s < 3600:  fb_when = f'{age_s // 60}m ago'
+        elif age_s < 86400: fb_when = f'{age_s // 3600}h ago'
+        else:               fb_when = f'{age_s // 86400}d ago'
+        feedback_list.append({
+            'username': fb.user.username if fb.user else None,
+            'category': fb.category,
+            'message':  fb.message,
+            'ip':       str(fb.ip_address) if fb.ip_address else None,
+            'when':     fb_when,
+        })
 
     # ── Build response ────────────────────────────────────────────────────
     return JsonResponse({
@@ -1325,6 +1340,7 @@ def analytics_api(request):
         'newUsers30d': new_users_30d,
         'paidUsers':   users_with_credits,
         'recentUsers': recent_users,
+        'feedback':    feedback_list,
     })
 
 

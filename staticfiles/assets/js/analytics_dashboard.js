@@ -1,298 +1,394 @@
-const PAL = ['#4f8ef7','#34d399','#fbbf24','#a78bfa','#f87171','#2dd4bf'];
-let range = '7d';
+/* ── ExportReady Analytics Dashboard ── */
 
-// ── DRAWER ────────────────────────────────────────────────────────────────────
-function openDrawer() {
-  const overlay = document.getElementById('drawerOverlay');
-  const drawer  = document.getElementById('drawer');
-  overlay.style.display = 'block';
-  requestAnimationFrame(() => {
+const API_URL    = '/analytics/api/';
+const REFRESH_MS = 30_000;
+
+let trendChart   = null;
+let hourlyChart  = null;
+let allUsers     = [];
+let allFeedback  = [];
+let refreshTimer = null;
+
+/* ═══════════════════════════════
+   INIT
+═══════════════════════════════ */
+document.addEventListener('DOMContentLoaded', () => {
+  initNav();
+  initSearch();
+  initFeedbackSearch();
+  initHamburger();
+  fetchData();
+  refreshTimer = setInterval(fetchData, REFRESH_MS);
+});
+
+/* ═══════════════════════════════
+   HAMBURGER
+═══════════════════════════════ */
+function initHamburger() {
+  const btn     = document.getElementById('hamburgerBtn');
+  const sidebar = document.querySelector('.sidebar');
+  if (!btn || !sidebar) return;
+
+  const overlay = document.createElement('div');
+  overlay.className = 'sidebar-overlay';
+  document.body.appendChild(overlay);
+
+  function openMenu() {
+    sidebar.classList.add('open');
     overlay.classList.add('open');
-    drawer.classList.add('open');
-  });
-  document.body.style.overflow = 'hidden';
-}
-function closeDrawer() {
-  const overlay = document.getElementById('drawerOverlay');
-  const drawer  = document.getElementById('drawer');
-  overlay.classList.remove('open');
-  drawer.classList.remove('open');
-  setTimeout(() => { overlay.style.display = 'none'; }, 250);
-  document.body.style.overflow = '';
-}
-
-// ── FETCH REAL DATA ───────────────────────────────────────────────────────────
-async function loadData() {
-  const res = await fetch('/analytics/api/');
-  if (res.status === 401) { window.location.href = '/analytics/login/'; return null; }
-  if (!res.ok) throw new Error('API error');
-  return await res.json();
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-async function render() {
-  let d;
-  try { d = await loadData(); } catch { return; }
-  if (!d) return;
-
-  const now = new Date().toLocaleString('en', { weekday: 'long', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' });
-  document.getElementById('nowLabel').textContent = now;
-  document.getElementById('syncTime').textContent = 'just now';
-  const drawerSync = document.getElementById('syncTimeDrawer');
-  if (drawerSync) drawerSync.textContent = 'just now';
-
-  // ── KPIs ──
-  setVal('kv1', d.totalJobs.toLocaleString());
-  setVal('kv2', d.totalDone.toLocaleString());
-  setVal('kv3', d.activeJobs > 0 ? d.activeJobs + ' active' : '—');
-  setVal('kv4', d.dataHuman);
-  document.getElementById('kd1').innerHTML = `${d.totalErrors} errors · ${d.totalCancelled} cancelled`;
-  document.getElementById('kd2').innerHTML = `<span style="color:var(--green)">${d.successRate}%</span> success rate`;
-  document.getElementById('kd4').innerHTML = `from ${d.totalDone} completed conversion${d.totalDone !== 1 ? 's' : ''}`;
-
-  // ── CHARTS ──
-  const labels = d.trendLabels;
-  const convs  = d.trendConvs;
-  const vis    = convs.map(v => v);
-  drawLine(labels, vis, convs);
-  drawBar(d.hourly);
-
-  const outTotal = d.outputFormats.reduce((a, b) => a + b.val, 0) || 1;
-  const outFmts  = d.outputFormats.map(f => ({ ...f, pct: Math.round(f.val / outTotal * 100) }));
-  drawDonut(outFmts);
-
-  const days7 = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
-  const heatmap = days7.map((day, i) => ({ day, hours: d.heatmapGrid[i] }));
-  drawHeatmap(heatmap);
-
-  const errPct = d.totalJobs > 0 ? Math.round(d.totalErrors / d.totalJobs * 100) : 0;
-  const cxlPct = d.totalJobs > 0 ? Math.round(d.totalCancelled / d.totalJobs * 100) : 0;
-  drawGauge(d.successRate, errPct, cxlPct);
-
-  const stMax = Math.max(...(d.strategies.map(s => s.val)), 1);
-  drawStats('strategyStats', d.strategies.map(s => ({ ...s, pct: Math.round(s.val / stMax * 100) })), '#4f8ef7');
-
-  const inMax = Math.max(...(d.inputFormats.map(f => f.val)), 1);
-  drawStats('inputFmtStats', d.inputFormats.map(f => ({ ...f, pct: Math.round(f.val / inMax * 100) })), '#34d399');
-
-  drawJobs(d.recentJobs);
-   // ── User KPIs ──
-  setVal('uv1', d.totalUsers.toLocaleString());
-  setVal('uv2', d.newUsers7d.toLocaleString());
-  setVal('uv3', d.newUsers30d.toLocaleString());
-  setVal('uv4', d.paidUsers.toLocaleString());
-  document.getElementById('ud1').innerHTML = `${d.paidUsers} paid · ${d.totalUsers - d.paidUsers} free`;
-  document.getElementById('ud4').innerHTML = `<span style="color:var(--green)">${d.totalUsers > 0 ? Math.round(d.paidUsers / d.totalUsers * 100) : 0}%</span> of total`;
-  drawUsers(d.recentUsers);
-
-  // ── Retention KPIs ──
-  setVal('rv1', d.totalVisitors.toLocaleString());
-  setVal('rv2', d.returningVisitors.toLocaleString());
-  setVal('rv3', d.newVisitors.toLocaleString());
-  setVal('rv4', d.activeVisitors30d.toLocaleString());
-  document.getElementById('rd1').innerHTML = `${d.activeVisitors30d} active in last 30 days`;
-  document.getElementById('rd2').innerHTML = `<span style="color:var(--green)">${d.retentionRate}%</span> retention rate`;
-  document.getElementById('rd3').innerHTML = `${d.returningVisitors} came back`;
-}
-
-function setVal(id, val) {
-  const el = document.getElementById(id);
-  if (!el) return;
-  el.style.opacity = '0';
-  requestAnimationFrame(() => {
-    el.textContent = val;
-    el.style.transition = 'opacity .2s';
-    el.style.opacity = '1';
-  });
-}
-
-// ── LINE CHART ────────────────────────────────────────────────────────────────
-function drawLine(labels, vis, convs) {
-  const el = document.getElementById('lineChart');
-  const W = 480, H = 130, pl = 36, pr = 8, pt = 8, pb = 22;
-  const iW = W - pl - pr, iH = H - pt - pb;
-  const n = labels.length;
-  const maxV = Math.max(...vis, ...convs, 1) * 1.18;
-  const xp = i => pl + (i / Math.max(n - 1, 1)) * iW;
-  const yp = v => pt + iH - (v / maxV) * iH;
-  let s = '';
-  [0, .25, .5, .75, 1].forEach(t => {
-    const y = pt + iH * (1 - t);
-    s += `<line class="gl" x1="${pl}" y1="${y}" x2="${W - pr}" y2="${y}"/>`;
-    if (t > 0) s += `<text class="ax" x="${pl - 4}" y="${y + 3}" text-anchor="end">${Math.round(maxV * t)}</text>`;
-  });
-  const step = n > 10 ? 3 : n > 5 ? 2 : 1;
-  labels.forEach((l, i) => {
-    if (i % step === 0)
-      s += `<text class="ax" x="${xp(i)}" y="${H - 4}" text-anchor="middle">${l}</text>`;
-  });
-  const vPath = convs.map((_, i) => `${i === 0 ? 'M' : 'L'}${xp(i)},${yp(convs[i])}`).join(' ');
-  const base  = `L${xp(n - 1)},${H - pb} L${xp(0)},${H - pb} Z`;
-  s += `<path d="${vPath} ${base}" fill="#4f8ef7" opacity=".08"/>`;
-  s += `<path d="${vPath}" fill="none" stroke="#4f8ef7" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>`;
-  convs.forEach((v, i) => s += `<circle cx="${xp(i)}" cy="${yp(v)}" r="2.5" fill="#4f8ef7" stroke="#111" stroke-width="1.5"/>`);
-  el.innerHTML = s;
-}
-
-// ── BAR CHART ─────────────────────────────────────────────────────────────────
-function drawBar(hourly) {
-  const el = document.getElementById('barChart');
-  const W = 480, H = 100, pl = 28, pr = 6, pt = 4, pb = 18;
-  const iW = W - pl - pr, iH = H - pt - pb;
-  const maxV = Math.max(...hourly, 1);
-  const bw = iW / 24 - 2;
-  const nowH = new Date().getHours();
-  let s = '';
-  hourly.forEach((v, i) => {
-    const x  = pl + i * (iW / 24);
-    const bh = Math.max((v / maxV) * iH, v > 0 ? 2 : 0);
-    const y  = pt + iH - bh;
-    s += `<rect x="${x}" y="${y}" width="${bw}" height="${bh}" rx="1" fill="${i === nowH ? '#4f8ef7' : '#1e1e1e'}"/>`;
-    if (i % 4 === 0)
-      s += `<text class="ax" x="${x + bw / 2}" y="${H - 3}" text-anchor="middle">${i}h</text>`;
-  });
-  el.innerHTML = s;
-}
-
-// ── DONUT ─────────────────────────────────────────────────────────────────────
-function drawDonut(fmts) {
-  const svg    = document.getElementById('donutChart');
-  const legend = document.getElementById('donutLegend');
-  if (!fmts.length) {
-    svg.innerHTML = '';
-    legend.innerHTML = '<span style="font-size:11px;color:var(--faint)">No data yet</span>';
-    return;
+    btn.classList.add('open');
   }
-  const total = fmts.reduce((a, b) => a + b.val, 0) || 1;
-  const cx = 20, cy = 20, r = 18, ir = 11;
-  let angle = -Math.PI / 2, paths = '';
-  fmts.forEach((f, i) => {
-    const sl = (f.val / total) * 2 * Math.PI;
-    const x1 = cx + r * Math.cos(angle), y1 = cy + r * Math.sin(angle);
-    const x2 = cx + r * Math.cos(angle + sl), y2 = cy + r * Math.sin(angle + sl);
-    paths += `<path d="M${cx},${cy} L${x1.toFixed(2)},${y1.toFixed(2)} A${r},${r},0,${sl > Math.PI ? 1 : 0},1,${x2.toFixed(2)},${y2.toFixed(2)} Z" fill="${PAL[i % PAL.length]}" stroke="#111" stroke-width=".8" opacity=".9"/>`;
-    angle += sl;
-  });
-  paths += `<circle cx="${cx}" cy="${cy}" r="${ir}" fill="#111"/>`;
-  svg.innerHTML = paths;
-  legend.innerHTML = fmts.map((f, i) => `
-    <div class="leg-item">
-      <div class="leg-swatch" style="background:${PAL[i % PAL.length]}"></div>
-      <span class="leg-name">${f.name}</span>
-      <span class="leg-pct">${f.pct}%</span>
-    </div>`).join('');
-}
+  function closeMenu() {
+    sidebar.classList.remove('open');
+    overlay.classList.remove('open');
+    btn.classList.remove('open');
+  }
 
-// ── HEATMAP ───────────────────────────────────────────────────────────────────
-function drawHeatmap(hm) {
-  const el = document.getElementById('heatmap');
-  const maxV = Math.max(...hm.flatMap(d => d.hours), 1);
-  let s = '<div class="hm-grid">';
-  s += '<div></div>';
-  for (let h = 0; h < 24; h++)
-    s += `<div style="font-size:9px;color:#666;text-align:center;font-family:var(--mono)">${h % 4 === 0 ? h + 'h' : ''}</div>`;
-  hm.forEach(({ day, hours }) => {
-    s += `<div class="hm-label">${day}</div>`;
-    hours.forEach(v => {
-      const a = v > 0 ? 0.06 + (v / maxV) * 0.82 : 0.02;
-      s += `<div class="hm-cell" style="background:rgba(79,142,247,${a.toFixed(2)})" title="${v} jobs"></div>`;
+  btn.addEventListener('click', function(e) {
+    e.stopPropagation();
+    sidebar.classList.contains('open') ? closeMenu() : openMenu();
+  });
+
+  overlay.addEventListener('click', closeMenu);
+
+  document.querySelectorAll('.nav-item[data-section]').forEach(function(item) {
+    item.addEventListener('click', function() {
+      if (window.innerWidth <= 900) closeMenu();
     });
   });
-  s += '</div>';
-  el.innerHTML = s;
 }
 
-// ── GAUGE ─────────────────────────────────────────────────────────────────────
-function drawGauge(pct, errP, cxlP) {
-  const svg = document.getElementById('gaugeChart');
-  document.getElementById('gaugeVal').textContent = pct + '%';
-  const cx = 60, cy = 60, r = 48;
-  const fa = Math.PI + ((pct || 0) / 100) * Math.PI;
-  const ex = cx + r * Math.cos(fa - Math.PI);
-  const ey = cy + r * Math.sin(fa - Math.PI);
-  svg.innerHTML = `
-    <path d="M${cx - r},${cy} A${r},${r},0,0,1,${cx + r},${cy}" fill="none" stroke="#1e1e1e" stroke-width="7" stroke-linecap="round"/>
-    <path d="M${cx - r},${cy} A${r},${r},0,0,1,${ex.toFixed(2)},${ey.toFixed(2)}" fill="none" stroke="#ededed" stroke-width="7" stroke-linecap="round"/>
-    <text x="${cx - 44}" y="${cy - 10}" font-family="Geist Mono,monospace" font-size="9" fill="#888">Err ${errP}%</text>
-    <text x="${cx + 44}" y="${cy - 10}" font-family="Geist Mono,monospace" font-size="9" fill="#888" text-anchor="end">Cxl ${cxlP}%</text>
-  `;
+/* ═══════════════════════════════
+   NAV
+═══════════════════════════════ */
+function initNav() {
+  document.querySelectorAll('.nav-item[data-section]').forEach(function(item) {
+    item.addEventListener('click', function(e) {
+      e.preventDefault();
+      var target = item.dataset.section;
+      switchSection(target);
+      document.querySelectorAll('.nav-item').forEach(function(n) {
+        n.classList.remove('active');
+      });
+      item.classList.add('active');
+    });
+  });
 }
 
-// ── STAT BARS ─────────────────────────────────────────────────────────────────
-function drawStats(id, items, color) {
-  const el = document.getElementById(id);
-  if (!items || !items.length) {
-    el.innerHTML = '<p style="font-size:11px;color:var(--faint)">No data yet</p>';
+function switchSection(name) {
+  document.querySelectorAll('.section').forEach(function(s) {
+    s.classList.remove('active');
+  });
+  var sec = document.getElementById('section-' + name);
+  if (sec) sec.classList.add('active');
+  var titles = { overview: 'Overview', jobs: 'Jobs', users: 'Users', feedback: 'Feedback' };
+  document.getElementById('pageTitle').textContent = titles[name] || name;
+}
+
+/* ═══════════════════════════════
+   FETCH
+═══════════════════════════════ */
+async function fetchData() {
+  try {
+    var res  = await fetch(API_URL);
+    if (!res.ok) throw new Error(res.status);
+    var data = await res.json();
+    render(data);
+    setStatus(true);
+  } catch (err) {
+    setStatus(false);
+    console.error('Analytics fetch failed:', err);
+  }
+}
+
+/* ═══════════════════════════════
+   STATUS
+═══════════════════════════════ */
+function setStatus(online) {
+  var dot  = document.getElementById('statusDot');
+  var text = document.getElementById('statusText');
+  dot.className    = 'status-dot ' + (online ? 'online' : 'offline');
+  text.textContent = online ? 'Server online' : 'Server offline';
+  var sync = document.getElementById('lastSync');
+  sync.textContent = online
+    ? 'Last sync: ' + new Date().toLocaleTimeString()
+    : 'Sync failed';
+}
+
+/* ═══════════════════════════════
+   RENDER
+═══════════════════════════════ */
+function render(d) {
+  renderKPIs(d);
+  renderTrend(d);
+  renderHourly(d);
+  renderBars('outputFormats', d.outputFormats);
+  renderBars('inputFormats',  d.inputFormats);
+  renderBars('strategies',    d.strategies);
+  renderRetention(d);
+  renderJobs(d.recentJobs);
+  renderUsers(d.recentUsers);
+  allUsers    = d.recentUsers || [];
+  allFeedback = d.feedback    || [];
+  renderFeedback(allFeedback);
+}
+
+/* ── KPIs ── */
+function renderKPIs(d) {
+  setText('kpiTotal',      fmt(d.totalJobs));
+  setText('kpiActive',     fmt(d.activeJobs) + ' active');
+  setText('kpiDone',       fmt(d.totalDone));
+  setText('kpiRate',       d.successRate + '% success');
+  setText('kpiErrors',     fmt(d.totalErrors));
+  setText('kpiCancelled',  fmt(d.totalCancelled) + ' cancelled');
+  setText('kpiData',       d.dataHuman || '0 B');
+  setText('kpiUsers',      fmt(d.totalUsers));
+  setText('kpiNewUsers',   '+' + fmt(d.newUsers7d) + ' this week');
+  setText('kpiPaid',       fmt(d.paidUsers));
+  setText('kpiNewUsers30', '+' + fmt(d.newUsers30d) + ' this month');
+  setText('uTotal', fmt(d.totalUsers));
+  setText('uNew7',  fmt(d.newUsers7d));
+  setText('uNew30', fmt(d.newUsers30d));
+  setText('uPaid',  fmt(d.paidUsers));
+}
+
+/* ── TREND CHART ── */
+function renderTrend(d) {
+  var ctx = document.getElementById('trendChart').getContext('2d');
+  if (trendChart) { trendChart.destroy(); }
+  trendChart = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: d.trendLabels,
+      datasets: [{
+        label: 'Conversions',
+        data: d.trendConvs,
+        backgroundColor: 'rgba(102,0,255,0.15)',
+        borderColor: '#6600ff',
+        borderWidth: 2,
+        borderRadius: 4,
+        hoverBackgroundColor: 'rgba(102,0,255,0.3)'
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: { callbacks: { label: function(ctx) { return ' ' + ctx.parsed.y + ' conversions'; } } }
+      },
+      scales: {
+        x: { grid: { display: false }, ticks: { font: { size: 11 }, color: '#6b7280' } },
+        y: { beginAtZero: true, grid: { color: '#f3f4f6' }, ticks: { stepSize: 1, font: { size: 11 }, color: '#6b7280' } }
+      }
+    }
+  });
+}
+
+/* ── HOURLY CHART ── */
+function renderHourly(d) {
+  var ctx = document.getElementById('hourlyChart').getContext('2d');
+  if (hourlyChart) { hourlyChart.destroy(); }
+  var labels = Array.from({length: 24}, function(_, i) {
+    if (i === 0)  return '12a';
+    if (i === 12) return '12p';
+    return i < 12 ? i + 'a' : (i - 12) + 'p';
+  });
+  hourlyChart = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: labels,
+      datasets: [{
+        label: 'Jobs',
+        data: d.hourly,
+        fill: true,
+        backgroundColor: 'rgba(59,130,246,0.08)',
+        borderColor: '#3b82f6',
+        borderWidth: 2,
+        pointRadius: 3,
+        pointBackgroundColor: '#3b82f6',
+        tension: 0.4
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { grid: { display: false }, ticks: { font: { size: 10 }, color: '#6b7280', maxTicksLimit: 8 } },
+        y: { beginAtZero: true, grid: { color: '#f3f4f6' }, ticks: { stepSize: 1, font: { size: 10 }, color: '#6b7280' } }
+      }
+    }
+  });
+}
+
+/* ── BAR LISTS ── */
+function renderBars(containerId, items) {
+  var el = document.getElementById(containerId);
+  if (!el || !items || !items.length) {
+    if (el) el.innerHTML = '<div style="padding:14px 18px;color:#9ca3af;font-size:12px">No data yet</div>';
     return;
   }
-  el.innerHTML = items.map(it => `
-    <div class="stat-item">
-      <span class="stat-name">${it.name}</span>
-      <div class="stat-track">
-        <div class="stat-fill" style="width:${it.pct}%;background:${color}"></div>
-      </div>
-      <span class="stat-num">${it.val}</span>
-    </div>`).join('');
+  var max = Math.max.apply(null, items.map(function(i) { return i.val; }).concat([1]));
+  el.innerHTML = items.map(function(item) {
+    return '<div class="bar-item">'
+      + '<div class="bar-item-top">'
+      + '<span class="bar-item-name">' + esc(item.name) + '</span>'
+      + '<span class="bar-item-val">'  + item.val       + '</span>'
+      + '</div>'
+      + '<div class="bar-track"><div class="bar-fill" style="width:' + Math.round((item.val / max) * 100) + '%"></div></div>'
+      + '</div>';
+  }).join('');
 }
 
-// ── JOBS TABLE ────────────────────────────────────────────────────────────────
-function drawJobs(jobs) {
-  const sc = s => ({ done: 'pill-done', error: 'pill-err', cancelled: 'pill-cxl', converting: 'pill-act', queued: 'pill-act', paused: 'pill-act' }[s] || 'pill-cxl');
+/* ── RETENTION ── */
+function renderRetention(d) {
+  var el = document.getElementById('retentionStats');
+  if (!el) return;
+  el.innerHTML =
+    '<div class="retention-row"><span class="retention-label">Total Visitors</span><span class="retention-val">'          + fmt(d.totalVisitors)    + '</span></div>' +
+    '<div class="retention-row"><span class="retention-label">Returning</span><span class="retention-badge badge-green">'  + fmt(d.returningVisitors) + '</span></div>' +
+    '<div class="retention-row"><span class="retention-label">New</span><span class="retention-badge badge-blue">'         + fmt(d.newVisitors)       + '</span></div>' +
+    '<div class="retention-row"><span class="retention-label">Retention Rate</span><span class="retention-badge badge-purple">' + d.retentionRate + '%</span></div>' +
+    '<div class="retention-row"><span class="retention-label">Active (30d)</span><span class="retention-val">'             + fmt(d.activeVisitors30d) + '</span></div>';
+}
+
+/* ── JOBS TABLE ── */
+function renderJobs(jobs) {
+  var tbody = document.getElementById('jobsBody');
+  var count = document.getElementById('jobCount');
+  if (!tbody) return;
   if (!jobs || !jobs.length) {
-    document.getElementById('jobsBody').innerHTML =
-      `<tr><td colspan="6" style="text-align:center;color:var(--faint);padding:24px">No conversions yet</td></tr>`;
+    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:#9ca3af;padding:32px">No jobs yet</td></tr>';
     return;
   }
-  document.getElementById('jobsBody').innerHTML = jobs.map(j => `
-    <tr>
-      <td class="name" title="${j.name}">${j.name}</td>
-      <td>
-        <span class="fmt">${j.inFmt.toUpperCase()}</span>
-        <span style="color:var(--faint);font-size:10px;margin:0 3px">→</span>
-        <span class="fmt">${j.outFmt.toUpperCase()}</span>
-      </td>
-      <td>${j.size}</td>
-      <td style="font-size:11px">${j.strategy}</td>
-      <td><span class="pill ${sc(j.status)}">${j.status}</span></td>
-      <td style="color:var(--faint)">${j.when}</td>
-    </tr>`).join('');
+  if (count) count.textContent = jobs.length + ' recent';
+  tbody.innerHTML = jobs.map(function(j) {
+    return '<tr>'
+      + '<td><div class="cell-filename" title="' + esc(j.name) + '">' + esc(j.name) + '</div></td>'
+      + '<td><span class="fmt-badge">' + esc(j.inFmt) + '</span><span style="margin:0 4px;color:#d1d5db">&rarr;</span><span class="fmt-badge">' + esc(j.outFmt) + '</span></td>'
+      + '<td style="white-space:nowrap">' + esc(j.size) + '</td>'
+      + '<td style="font-size:11px;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="' + esc(j.strategy) + '">' + (esc(j.strategy) || '&mdash;') + '</td>'
+      + '<td><span class="status-badge status-' + j.status + '">' + statusDot(j.status) + ' ' + esc(j.status) + '</span></td>'
+      + '<td style="white-space:nowrap;color:#9ca3af;font-size:12px">' + esc(j.when) + '</td>'
+      + '</tr>';
+  }).join('');
 }
-// ── USERS TABLE ───────────────────────────────────────────────────────────────
-function drawUsers(users) {
+
+/* ── USERS TABLE ── */
+function renderUsers(users) {
+  var tbody = document.getElementById('usersBody');
+  if (!tbody) return;
   if (!users || !users.length) {
-    document.getElementById('usersBody').innerHTML =
-      `<tr><td colspan="7" style="text-align:center;color:var(--faint);padding:24px">No registered users yet</td></tr>`;
+    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:#9ca3af;padding:32px">No users yet</td></tr>';
     return;
   }
-  document.getElementById('usersBody').innerHTML = users.map(u => `
-    <tr>
-      <td class="name">${u.username}</td>
-      <td style="color:var(--faint);font-size:11px">${u.email || '—'}</td>
-      <td>${u.jobs}</td>
-      <td>${u.credits}</td>
-      <td>${u.freeUsed}</td>
-      <td><span class="pill ${u.isPaid ? 'pill-done' : 'pill-act'}">${u.isPaid ? 'paid' : 'free'}</span></td>
-      <td style="color:var(--faint)">${u.joined}</td>
-    </tr>`).join('');
-}
-// ── CONTROLS ──────────────────────────────────────────────────────────────────
-function seg(btn, r) {
-  document.querySelectorAll('.seg').forEach(b => b.classList.remove('on'));
-  btn.classList.add('on');
-  range = r;
-  render();
+  tbody.innerHTML = users.map(function(u) {
+    return '<tr>'
+      + '<td style="font-weight:600;color:#111827">' + esc(u.username) + '</td>'
+      + '<td style="color:#6b7280;font-size:12px">'  + (esc(u.email) || '&mdash;') + '</td>'
+      + '<td><span class="plan-badge ' + (u.isPaid ? 'plan-paid' : 'plan-free') + '">' + (u.isPaid ? 'Paid' : 'Free') + '</span></td>'
+      + '<td style="font-weight:600">' + fmt(u.credits)  + '</td>'
+      + '<td>'                         + fmt(u.freeUsed) + '</td>'
+      + '<td style="font-weight:600">' + fmt(u.jobs)     + '</td>'
+      + '<td style="color:#9ca3af;font-size:12px;white-space:nowrap">' + esc(u.joined) + '</td>'
+      + '</tr>';
+  }).join('');
 }
 
-function doRefresh(btn) {
-  const orig = btn.textContent;
-  btn.textContent = '↻';
-  render().then(() => btn.textContent = orig || '↻ Refresh');
+/* ═══════════════════════════════
+   SEARCH
+═══════════════════════════════ */
+function initSearch() {
+  var input = document.getElementById('userSearch');
+  if (!input) return;
+  input.addEventListener('input', function() {
+    var q = input.value.toLowerCase().trim();
+    if (!q) { renderUsers(allUsers); return; }
+    renderUsers(allUsers.filter(function(u) {
+      return u.username.toLowerCase().includes(q) || (u.email || '').toLowerCase().includes(q);
+    }));
+  });
 }
 
-// ── INIT ──────────────────────────────────────────────────────────────────────
-render();
-setInterval(render, 30000);
-setInterval(() => {
-  const now = new Date().toLocaleString('en', { weekday: 'long', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' });
-  document.getElementById('nowLabel').textContent = now;
-}, 10000);
+/* ═══════════════════════════════
+   FEEDBACK
+═══════════════════════════════ */
+function renderFeedback(items) {
+  var tbody = document.getElementById('feedbackBody');
+  if (!tbody) return;
+
+  setText('fbTotal',   fmt(items.length));
+  setText('fbBugs',    fmt(items.filter(function(f) { return f.category === 'bug'; }).length));
+  setText('fbSpeed',   fmt(items.filter(function(f) { return f.category === 'speed'; }).length));
+  setText('fbQuality', fmt(items.filter(function(f) { return f.category === 'export-quality'; }).length));
+  setText('fbOther',   fmt(items.filter(function(f) { return !['bug','speed','export-quality'].includes(f.category); }).length));
+
+  if (!items.length) {
+    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:#9ca3af;padding:32px">No feedback yet</td></tr>';
+    return;
+  }
+
+  var categoryLabels = {
+    'export-quality': 'Export quality',
+    'speed':          'Speed',
+    'ai-chat':        'Export AI',
+    'ui':             'UI',
+    'bug':            'Bug',
+    'other':          'Other'
+  };
+
+  tbody.innerHTML = items.map(function(f) {
+    var userCell = f.username
+      ? '<span>' + esc(f.username) + '</span>'
+      : '<span style="color:#9ca3af;font-style:italic">Anonymous</span>';
+    return '<tr>'
+      + '<td style="font-weight:600;color:#111827;white-space:nowrap">' + userCell + '</td>'
+      + '<td><span class="cat-badge cat-' + esc(f.category) + '">' + esc(categoryLabels[f.category] || f.category) + '</span></td>'
+      + '<td><div class="feedback-msg" title="' + esc(f.message) + '">' + esc(f.message) + '</div></td>'
+      + '<td style="font-size:11px;color:#9ca3af;white-space:nowrap">' + (esc(f.ip) || '&mdash;') + '</td>'
+      + '<td style="font-size:12px;color:#9ca3af;white-space:nowrap">' + esc(f.when) + '</td>'
+      + '</tr>';
+  }).join('');
+}
+
+function initFeedbackSearch() {
+  var input = document.getElementById('feedbackSearch');
+  if (!input) return;
+  input.addEventListener('input', function() {
+    var q = input.value.toLowerCase().trim();
+    if (!q) { renderFeedback(allFeedback); return; }
+    renderFeedback(allFeedback.filter(function(f) {
+      return (f.message  || '').toLowerCase().includes(q)
+          || (f.username || '').toLowerCase().includes(q)
+          || (f.category || '').toLowerCase().includes(q);
+    }));
+  });
+}
+
+/* ═══════════════════════════════
+   HELPERS
+═══════════════════════════════ */
+function setText(id, val) {
+  var el = document.getElementById(id);
+  if (el) el.textContent = val;
+}
+
+function fmt(n) {
+  if (n === undefined || n === null) return '\u2014';
+  return Number(n).toLocaleString();
+}
+
+function esc(str) {
+  if (!str && str !== 0) return '';
+  return String(str)
+    .replace(/&/g,  '&amp;')
+    .replace(/</g,  '&lt;')
+    .replace(/>/g,  '&gt;')
+    .replace(/"/g,  '&quot;');
+}
+
+function statusDot(status) {
+  var dots = { done: '\u25CF', error: '\u25CF', cancelled: '\u25CB', converting: '\u25CF', queued: '\u25CB', paused: '\u25D0' };
+  return dots[status] || '\u25CB';
+}

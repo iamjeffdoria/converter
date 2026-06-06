@@ -4,280 +4,276 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Analytics — Video Converter</title>
+<title>Analytics — ExportReady</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="{% static 'assets/css/analytics_dashboard.css' %}">
-
 </head>
 <body>
 
-<!-- ── MOBILE DRAWER OVERLAY ── -->
-<div class="drawer-overlay" id="drawerOverlay" onclick="closeDrawer()"></div>
-
-<!-- ── MOBILE DRAWER ── -->
-<div class="drawer" id="drawer">
-  <div class="drawer-logo">
-    <div class="side-app">Video Converter <span>/ Analytics</span></div>
-    <button class="drawer-close" onclick="closeDrawer()">✕</button>
+<!-- SIDEBAR -->
+<aside class="sidebar">
+  <div class="sidebar-logo">
+    <span class="logo-mark">ER</span>
+    <span class="logo-text">ExportReady</span>
   </div>
-  <div class="nav-section">Navigate</div>
-  <a href="/" class="nav-link" onclick="closeDrawer()">
-    <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="2" y="2" width="5" height="5" rx="1"/><rect x="9" y="2" width="5" height="5" rx="1"/><rect x="2" y="9" width="5" height="5" rx="1"/><rect x="9" y="9" width="5" height="5" rx="1"/></svg>
-    Converter
-  </a>
-  <div class="nav-sep"></div>
-  <div class="nav-section">Analytics</div>
-  <a href="/analytics/" class="nav-link on" onclick="closeDrawer()">
-    <svg width="13" height="13" viewBox="0 0 16 16" fill="currentColor"><rect x="1" y="9" width="3" height="6" rx="1"/><rect x="6.5" y="5" width="3" height="10" rx="1"/><rect x="12" y="2" width="3" height="13" rx="1"/></svg>
-    Overview
-  </a>
-<div style="margin-top:auto;padding:16px 16px 24px;border-top:1px solid var(--border);flex-shrink:0;position:sticky;bottom:0;background:var(--surface)">
-    <div class="online"><span class="green-dot"></span>Server online</div>
-    <div class="sync-text">Last sync: <span id="syncTimeDrawer">—</span></div>
-    <a href="{% url 'analytics_logout' %}" class="btn-logout">
-      <svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M6 2H3a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h3"/>
-        <polyline points="11 12 15 8 11 4"/>
-        <line x1="15" y1="8" x2="6" y2="8"/>
-      </svg>
-      Sign out
+  <nav class="sidebar-nav">
+    <div class="nav-label">Analytics</div>
+    <a href="#" class="nav-item active" data-section="overview">
+      <svg viewBox="0 0 20 20" fill="currentColor"><path d="M2 10a8 8 0 1116 0A8 8 0 012 10zm8-5a1 1 0 011 1v3.586l2.707 2.707a1 1 0 01-1.414 1.414l-3-3A1 1 0 019 10V6a1 1 0 011-1z"/></svg>
+      Overview
     </a>
-  </div>
-</div>
-
-<div class="shell">
-
-<!-- ── MOBILE TOPBAR ── -->
-<div class="mobile-topbar">
-  <div class="mobile-logo">Video Converter <span>/ Analytics</span></div>
-  <div class="mobile-actions">
-    <button class="btn-refresh" onclick="doRefresh(this)" style="padding:5px 10px;font-size:11px">↻</button>
-    <button class="hamburger" onclick="openDrawer()" aria-label="Menu">
-      <span></span><span></span><span></span>
-    </button>
-  </div>
-</div>
-
-<!-- ── SIDEBAR (desktop) ── -->
-<aside class="side">
-  <div class="side-logo">
-    <div class="side-app">Video Converter <span>/ Analytics</span></div>
-  </div>
-  <div class="nav-section">Navigate</div>
-  <a href="/" class="nav-link">
-    <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="2" y="2" width="5" height="5" rx="1"/><rect x="9" y="2" width="5" height="5" rx="1"/><rect x="2" y="9" width="5" height="5" rx="1"/><rect x="9" y="9" width="5" height="5" rx="1"/></svg>
-    Converter
-  </a>
-  <div class="nav-sep"></div>
-  <div class="nav-section">Analytics</div>
-  <a href="/analytics/" class="nav-link on">
-    <svg width="13" height="13" viewBox="0 0 16 16" fill="currentColor"><rect x="1" y="9" width="3" height="6" rx="1"/><rect x="6.5" y="5" width="3" height="10" rx="1"/><rect x="12" y="2" width="3" height="13" rx="1"/></svg>
-    Overview
-  </a>
-  <div class="side-foot">
-    <div class="online"><span class="green-dot"></span>Server online</div>
-    <div class="sync-text">Last sync: <span id="syncTime">—</span></div>
-    <a href="{% url 'analytics_logout' %}" class="btn-logout">
-      <svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M6 2H3a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h3"/>
-        <polyline points="11 12 15 8 11 4"/>
-        <line x1="15" y1="8" x2="6" y2="8"/>
-      </svg>
-      Sign out
+    <a href="#" class="nav-item" data-section="jobs">
+      <svg viewBox="0 0 20 20" fill="currentColor"><path d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm3 2h6v4H7V5zm8 8v2h1v-2h-1zm-2-2H7v4h6v-4zm2 0h1V9h-1v2zm1-4V5h-1v2h1z"/></svg>
+      Jobs
     </a>
+    <a href="#" class="nav-item" data-section="users">
+      <svg viewBox="0 0 20 20" fill="currentColor"><path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 16v1h-6.07zM6 11a5 5 0 015 5v1H1v-1a5 5 0 015-5z"/></svg>
+      Users
+    </a>
+    <a href="#" class="nav-item" data-section="feedback">
+      <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M18 10c0 3.866-3.582 7-8 7a8.841 8.841 0 01-4.083-.98L2 17l1.338-3.123C2.493 12.767 2 11.434 2 10c0-3.866 3.582-7 8-7s8 3.134 8 7zM7 9H5v2h2V9zm8 0h-2v2h2V9zM9 9h2v2H9V9z" clip-rule="evenodd"/></svg>
+      Feedback
+    </a>
+    <div class="nav-label" style="margin-top:16px">Navigate</div>
+    <a href="/convert/" class="nav-item">
+      <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm.707-10.293a1 1 0 00-1.414-1.414l-3 3a1 1 0 000 1.414l3 3a1 1 0 001.414-1.414L9.414 11H13a1 1 0 100-2H9.414l1.293-1.293z" clip-rule="evenodd"/></svg>
+      Converter
+    </a>
+  </nav>
+  <div class="sidebar-footer">
+    <div class="server-status">
+      <span class="status-dot" id="statusDot"></span>
+      <span id="statusText">Checking…</span>
+    </div>
+    <a href="/analytics/logout/" class="sign-out-btn">Sign out</a>
   </div>
 </aside>
 
-<!-- ── MAIN ── -->
-<div class="main">
+<!-- MAIN -->
+<main class="main">
 
-  <!-- Topbar -->
-  <div class="topbar">
-    <div>
-      <div class="page-title">Overview</div>
-      <div class="page-sub" id="nowLabel">—</div>
+  <!-- TOP BAR -->
+<header class="topbar">
+    <div class="topbar-left">
+      <button class="hamburger" id="hamburgerBtn" aria-label="Toggle menu">
+        <span></span><span></span><span></span>
+      </button>
+      <h1 class="page-title" id="pageTitle">Overview</h1>
+      <span class="last-sync" id="lastSync">Syncing…</span>
     </div>
     <div class="topbar-right">
-      <div class="seg-group">
-        <button class="seg" onclick="seg(this,'24h')">24h</button>
-        <button class="seg on" onclick="seg(this,'7d')">7d</button>
-        <button class="seg" onclick="seg(this,'30d')">30d</button>
-        <button class="seg" onclick="seg(this,'all')">All</button>
-      </div>
-      <button class="btn-refresh" onclick="doRefresh(this)">↻ Refresh</button>
-    </div>
-  </div>
-
-  <!-- KPIs -->
-  <div class="sec">Key metrics</div>
-  <div class="kpi-grid">
-    <div class="kpi">
-      <div class="kpi-label">Total jobs</div>
-      <div class="kpi-value" id="kv1">—</div>
-      <div class="kpi-delta" id="kd1">—</div>
-    </div>
-    <div class="kpi">
-      <div class="kpi-label">Completed</div>
-      <div class="kpi-value" id="kv2">—</div>
-      <div class="kpi-delta" id="kd2">—</div>
-    </div>
-    <div class="kpi">
-      <div class="kpi-label">Active now</div>
-      <div class="kpi-value" id="kv3">—</div>
-      <div class="kpi-delta" style="color:var(--faint)">from probed video duration</div>
-    </div>
-    <div class="kpi">
-      <div class="kpi-label">Data out</div>
-      <div class="kpi-value" id="kv4">—</div>
-      <div class="kpi-delta" id="kd4">—</div>
-    </div>
-  </div>
-
-  <!-- Traffic -->
-  <div class="sec">Traffic & conversions</div>
-  <div class="row-2-1">
-    <div class="card">
-      <div class="card-title">Visitors & conversions</div>
-      <div class="card-sub">Daily — last 14 days</div>
-      <svg class="chart" id="lineChart" viewBox="0 0 480 130"></svg>
-      <div class="legend-row">
-        <div class="lr-item"><div class="lr-line" style="background:var(--text)"></div>Visitors</div>
-        <div class="lr-item"><div class="lr-line" style="background:var(--blue)"></div>Conversions</div>
+      <div class="refresh-badge" id="refreshBadge">
+        <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z" clip-rule="evenodd"/></svg>
+        Auto-refresh 30s
       </div>
     </div>
-    <div class="card">
-      <div class="card-title">Output formats</div>
-      <div class="card-sub">By conversion count</div>
-      <div class="donut-wrap">
-        <svg id="donutChart" viewBox="-1 -1 42 42" width="96" height="96" style="flex-shrink:0"></svg>
-        <div class="donut-legend" id="donutLegend"></div>
+  </header>
+
+  <!-- ═══════════════════════════════════
+       SECTION: OVERVIEW
+  ══════════════════════════════════════ -->
+  <section class="section active" id="section-overview">
+
+    <!-- KPI ROW -->
+    <div class="kpi-grid">
+      <div class="kpi-card">
+        <div class="kpi-label">Total Jobs</div>
+        <div class="kpi-value" id="kpiTotal">—</div>
+        <div class="kpi-sub" id="kpiActive">— active</div>
+      </div>
+      <div class="kpi-card kpi-green">
+        <div class="kpi-label">Completed</div>
+        <div class="kpi-value" id="kpiDone">—</div>
+        <div class="kpi-sub" id="kpiRate">—% success</div>
+      </div>
+      <div class="kpi-card kpi-red">
+        <div class="kpi-label">Errors</div>
+        <div class="kpi-value" id="kpiErrors">—</div>
+        <div class="kpi-sub" id="kpiCancelled">— cancelled</div>
+      </div>
+      <div class="kpi-card kpi-blue">
+        <div class="kpi-label">Data Processed</div>
+        <div class="kpi-value" id="kpiData">—</div>
+        <div class="kpi-sub">total output</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">Total Users</div>
+        <div class="kpi-value" id="kpiUsers">—</div>
+        <div class="kpi-sub" id="kpiNewUsers">— this week</div>
+      </div>
+      <div class="kpi-card kpi-purple">
+        <div class="kpi-label">Paid Users</div>
+        <div class="kpi-value" id="kpiPaid">—</div>
+        <div class="kpi-sub" id="kpiNewUsers30">— this month</div>
       </div>
     </div>
-  </div>
 
-  <!-- Hourly + Heatmap -->
-  <div class="row-2">
-    <div class="card">
-      <div class="card-title">Hourly visitors</div>
-      <div class="card-sub">Today — current hour highlighted</div>
-      <svg class="chart" id="barChart" viewBox="0 0 480 100"></svg>
-    </div>
-    <div class="card">
-      <div class="card-title">Activity heatmap</div>
-      <div class="card-sub">Visits by hour × day of week</div>
-      <div class="hm-scroll"><div id="heatmap"></div></div>
-    </div>
-  </div>
-
-  <!-- Performance -->
-  <div class="sec">Performance</div>
-  <div class="row-3">
-    <div class="card">
-      <div class="card-title">Success rate</div>
-      <div class="card-sub">Done vs error vs cancelled</div>
-      <div class="gauge-wrap">
-        <svg id="gaugeChart" viewBox="0 0 120 70" width="160" style="display:block;margin:0 auto"></svg>
-        <div class="gauge-num" id="gaugeVal">—%</div>
-        <div class="gauge-lbl">completed successfully</div>
+    <!-- CHARTS ROW -->
+    <div class="charts-row">
+      <div class="card chart-card large">
+        <div class="card-header">
+          <div class="card-title">Conversions — Last 14 Days</div>
+        </div>
+        <div class="chart-area">
+          <canvas id="trendChart"></canvas>
+        </div>
+      </div>
+      <div class="card chart-card">
+        <div class="card-header">
+          <div class="card-title">By Hour (Today)</div>
+        </div>
+        <div class="chart-area">
+          <canvas id="hourlyChart"></canvas>
+        </div>
       </div>
     </div>
-    <div class="card">
-      <div class="card-title">Encode strategy</div>
-      <div class="card-sub">FFmpeg strategy breakdown</div>
-      <div class="stat-list" id="strategyStats"></div>
-    </div>
-    <div class="card">
-      <div class="card-title">Input formats</div>
-      <div class="card-sub">By upload count</div>
-      <div class="stat-list" id="inputFmtStats"></div>
-    </div>
-  </div>
 
-  <!-- Recent jobs -->
-  <div class="sec" style="display:flex;align-items:center;gap:10px">
-    Recent conversions
-    <span class="live-indicator"><span class="live-dot"></span>live</span>
-  </div>
-  <div class="tbl-wrap">
-    <table class="tbl">
-      <thead><tr>
-        <th>Filename</th>
-        <th>Formats</th>
-        <th>Size</th>
-        <th>Strategy</th>
-        <th>Status</th>
-        <th>When</th>
-      </tr></thead>
-      <tbody id="jobsBody"></tbody>
-    </table>
-  </div>
+    <!-- BREAKDOWN ROW -->
+    <div class="breakdown-row">
+      <div class="card">
+        <div class="card-header"><div class="card-title">Output Formats</div></div>
+        <div id="outputFormats" class="bar-list"></div>
+      </div>
+      <div class="card">
+        <div class="card-header"><div class="card-title">Input Formats</div></div>
+        <div id="inputFormats" class="bar-list"></div>
+      </div>
+      <div class="card">
+        <div class="card-header"><div class="card-title">Encode Strategy</div></div>
+        <div id="strategies" class="bar-list"></div>
+      </div>
+      <div class="card">
+        <div class="card-header"><div class="card-title">Visitor Retention</div></div>
+        <div class="retention-stats" id="retentionStats"></div>
+      </div>
+    </div>
 
-  <!-- Retention -->
-  <div class="sec">Visitor retention</div>
-  <div class="kpi-grid">
-    <div class="kpi">
-      <div class="kpi-label">Total visitors</div>
-      <div class="kpi-value" id="rv1">—</div>
-      <div class="kpi-delta" id="rd1">—</div>
-    </div>
-    <div class="kpi">
-      <div class="kpi-label">Returning</div>
-      <div class="kpi-value" id="rv2">—</div>
-      <div class="kpi-delta" id="rd2">—</div>
-    </div>
-    <div class="kpi">
-      <div class="kpi-label">New visitors</div>
-      <div class="kpi-value" id="rv3">—</div>
-      <div class="kpi-delta" id="rd3">—</div>
-    </div>
-    <div class="kpi">
-      <div class="kpi-label">Active (30d)</div>
-      <div class="kpi-value" id="rv4">—</div>
-      <div class="kpi-delta" style="color:var(--faint)">unique browsers</div>
-    </div>
-  </div>
- <!-- Registered users -->
-  <div class="sec">Registered users</div>
-  <div class="kpi-grid">
-    <div class="kpi">
-      <div class="kpi-label">Total users</div>
-      <div class="kpi-value" id="uv1">—</div>
-      <div class="kpi-delta" id="ud1">—</div>
-    </div>
-    <div class="kpi">
-      <div class="kpi-label">New (7d)</div>
-      <div class="kpi-value" id="uv2">—</div>
-      <div class="kpi-delta" style="color:var(--faint)">last 7 days</div>
-    </div>
-    <div class="kpi">
-      <div class="kpi-label">New (30d)</div>
-      <div class="kpi-value" id="uv3">—</div>
-      <div class="kpi-delta" style="color:var(--faint)">last 30 days</div>
-    </div>
-    <div class="kpi">
-      <div class="kpi-label">Paid users</div>
-      <div class="kpi-value" id="uv4">—</div>
-      <div class="kpi-delta" id="ud4">—</div>
-    </div>
-  </div>
-  <div class="tbl-wrap">
-    <table class="tbl">
-      <thead><tr>
-        <th>Username</th>
-        <th>Email</th>
-        <th>Jobs</th>
-        <th>Credits</th>
-        <th>Free used</th>
-        <th>Plan</th>
-        <th>Joined</th>
-      </tr></thead>
-      <tbody id="usersBody"></tbody>
-    </table>
-  </div>
-</div><!-- /main -->
-</div><!-- /shell -->
+  </section>
 
+  <!-- ═══════════════════════════════════
+       SECTION: JOBS
+  ══════════════════════════════════════ -->
+  <section class="section" id="section-jobs">
+    <div class="card table-card">
+      <div class="card-header">
+        <div class="card-title">Recent Jobs</div>
+        <div class="card-badge" id="jobCount">—</div>
+      </div>
+      <div class="table-wrap">
+        <table class="data-table" id="jobsTable">
+          <thead>
+            <tr>
+              <th>File</th>
+              <th>Format</th>
+              <th>Size</th>
+              <th>Strategy</th>
+              <th>Status</th>
+              <th>When</th>
+            </tr>
+          </thead>
+          <tbody id="jobsBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════
+       SECTION: USERS
+  ══════════════════════════════════════ -->
+  <section class="section" id="section-users">
+    <div class="kpi-grid" style="margin-bottom:24px">
+      <div class="kpi-card">
+        <div class="kpi-label">Total Registered</div>
+        <div class="kpi-value" id="uTotal">—</div>
+      </div>
+      <div class="kpi-card kpi-green">
+        <div class="kpi-label">New (7 days)</div>
+        <div class="kpi-value" id="uNew7">—</div>
+      </div>
+      <div class="kpi-card kpi-blue">
+        <div class="kpi-label">New (30 days)</div>
+        <div class="kpi-value" id="uNew30">—</div>
+      </div>
+      <div class="kpi-card kpi-purple">
+        <div class="kpi-label">Paid Users</div>
+        <div class="kpi-value" id="uPaid">—</div>
+      </div>
+    </div>
+    <div class="card table-card">
+      <div class="card-header">
+        <div class="card-title">User List</div>
+        <input class="search-input" type="text" id="userSearch" placeholder="Search username or email…">
+      </div>
+      <div class="table-wrap">
+        <table class="data-table" id="usersTable">
+          <thead>
+            <tr>
+              <th>Username</th>
+              <th>Email</th>
+              <th>Plan</th>
+              <th>Credits</th>
+              <th>Free Used</th>
+              <th>Jobs</th>
+              <th>Joined</th>
+            </tr>
+          </thead>
+          <tbody id="usersBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+<!-- SECTION: FEEDBACK -->
+  <section class="section" id="section-feedback">
+    <div class="kpi-grid" style="margin-bottom:4px">
+      <div class="kpi-card">
+        <div class="kpi-label">Total Feedback</div>
+        <div class="kpi-value" id="fbTotal">—</div>
+      </div>
+      <div class="kpi-card kpi-red">
+        <div class="kpi-label">Bug Reports</div>
+        <div class="kpi-value" id="fbBugs">—</div>
+      </div>
+      <div class="kpi-card kpi-blue">
+        <div class="kpi-label">Speed</div>
+        <div class="kpi-value" id="fbSpeed">—</div>
+      </div>
+      <div class="kpi-card kpi-purple">
+        <div class="kpi-label">Export Quality</div>
+        <div class="kpi-value" id="fbQuality">—</div>
+      </div>
+      <div class="kpi-card kpi-green">
+        <div class="kpi-label">UI / Other</div>
+        <div class="kpi-value" id="fbOther">—</div>
+      </div>
+    </div>
+    <div class="card table-card">
+      <div class="card-header">
+        <div class="card-title">Feedback Messages</div>
+        <input class="search-input" type="text" id="feedbackSearch" placeholder="Search message or user…">
+      </div>
+      <div class="table-wrap">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>User</th>
+              <th>Category</th>
+              <th>Message</th>
+              <th>IP</th>
+              <th>When</th>
+            </tr>
+          </thead>
+          <tbody id="feedbackBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<!-- Chart.js CDN -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <script src="{% static 'assets/js/analytics_dashboard.js' %}"></script>
 </body>
 </html>
