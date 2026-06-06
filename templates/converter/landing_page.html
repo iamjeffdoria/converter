@@ -16,12 +16,11 @@
 <!-- NAV -->
 <nav>
   <a class="nav-logo" href="#">Export<em>Ready</em></a>
-  <div class="nav-links">
+<div class="nav-links">
     <a href="#features">Features</a>
     <a href="#platforms">Platforms</a>
-    <!-- <a href="#pricing">Pricing</a> -->
+    <a href="/login/" class="nav-sign-in">Sign In</a>
   </div>
-  <a href="/login/" class="nav-sign-in">Sign In</a>
   <a href="/login/" class="nav-cta">Start Free →</a>
   <button class="nav-hamburger" id="hamburger" aria-label="Toggle menu">
     <span></span><span></span><span></span>
@@ -38,28 +37,37 @@
 </nav>
 
 <!-- HERO -->
-<section class="hero">
+<section class="hero hero-split">
   <div class="hero-grid"></div>
-  <div class="hero-eyebrow">For Creators · AI-Powered · GPU-Fast</div>
-<h1>
-    Export once.<br>
-    <span class="accent">Per platform.</span><br>
-    <span class="dim">Perfectly.</span>
-  </h1>
-  <p class="hero-sub">
-    Drop your video. Tell us the platform.<br>
-    AI optimizes everything.
-  </p>
-  <div class="hero-actions">
-    <a href="/login/" class="btn-hero btn-hero-primary"><i class="bi bi-star-fill"></i> Export Your First Video Free</a>
-    <a href="#platforms" class="btn-hero btn-hero-ghost">See Platforms →</a>
+
+  <div class="hero-left">
+    <div class="hero-eyebrow">For Creators · AI-Powered · GPU-Fast</div>
+    <h1>
+      Export once.<br>
+      <span class="accent">Per platform.</span><br>
+      <span class="dim">Perfectly.</span>
+    </h1>
+    <p class="hero-sub">
+      Drop your video. Tell us the platform.<br>
+      AI optimizes everything.
+    </p>
+    <div class="hero-actions">
+      <a href="/login/" class="btn-hero btn-hero-primary"><i class="bi bi-star-fill"></i> Export Your First Video Free</a>
+    </div>
+    <div class="hero-stats">
+      <div class="hero-stat"><div class="hero-stat-val">8</div><div class="hero-stat-label">Platforms Supported</div></div>
+      <div class="hero-stat"><div class="hero-stat-val">4 GB</div><div class="hero-stat-label">Max File Size</div></div>
+      <div class="hero-stat"><div class="hero-stat-val">GPU</div><div class="hero-stat-label">Accelerated</div></div>
+      <div class="hero-stat"><div class="hero-stat-val">0</div><div class="hero-stat-label">Installs Needed</div></div>
+    </div>
   </div>
-  <div class="hero-stats">
-    <div class="hero-stat"><div class="hero-stat-val">8</div><div class="hero-stat-label">Platforms Supported</div></div>
-    <div class="hero-stat"><div class="hero-stat-val">4 GB</div><div class="hero-stat-label">Max File Size</div></div>
-    <div class="hero-stat"><div class="hero-stat-val">GPU</div><div class="hero-stat-label">Accelerated</div></div>
-    <div class="hero-stat"><div class="hero-stat-val">0</div><div class="hero-stat-label">Installs Needed</div></div>
+
+  <div class="hero-right">
+    <video autoplay loop muted playsinline class="hero-demo">
+      <source src="{% static 'assets/video/demo.mp4' %}" type="video/mp4">
+    </video>
   </div>
+
 </section>
 
 <!-- MARQUEE -->
