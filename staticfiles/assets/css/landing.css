@@ -102,6 +102,7 @@ nav {
   flex-direction: column;
   align-items: flex-start;
   min-width: 0;
+  margin-top: -40px;
 }
 /* Re-align text elements that were centered for the old single-col layout */
 .hero-eyebrow {
@@ -224,13 +225,13 @@ h1 .dim { color: var(--muted); }
   background: var(--surface);
   animation: fadeUp 0.8s 0.45s ease both;
   flex-wrap: wrap;
-  width: 100%; max-width: 600px;
+  width: 100%; max-width: 100%;
 }
 .hero-stat {
-  padding: 18px 36px;
+  padding: 18px 20px;
   border-right: 1px solid var(--border-mid);
   text-align: center;
-  flex: 1; min-width: 120px;
+  flex: 1; min-width: 100px;
 }
 .hero-stat:last-child { border-right: none; }
 .hero-stat-val {
