@@ -33,5 +33,6 @@ urlpatterns = [
     path('health/', views.health, name='health'),
     
     path('submit-feedback/', views.submit_feedback, name='submit_feedback'),
+    path('onboarding/', views.onboarding_status, name='onboarding_status'),
     
 ]

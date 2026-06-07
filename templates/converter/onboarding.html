@@ -1,0 +1,173 @@
+{% load static %}
+
+<!-- ── ONBOARDING OVERLAY ── -->
+<div id="onboardingOverlay" style="
+  display:none; position:fixed; inset:0; z-index:20000;
+  background:rgba(0,0,0,0.88);
+  align-items:center; justify-content:center;
+  padding:20px;
+  animation:fadeIn 0.3s ease;
+">
+  <div style="
+    background:var(--surface);
+    border:1px solid var(--border-mid);
+    border-top:3px solid var(--accent);
+    max-width:480px; width:100%;
+    position:relative;
+    animation:fadeIn 0.25s ease;
+  ">
+
+    <!-- Progress bar -->
+    <div style="height:3px; background:var(--border-mid); position:relative;">
+      <div id="onboardingProgress" style="
+        height:100%; background:var(--accent);
+        transition:width 0.4s ease; width:0%;
+      "></div>
+    </div>
+
+    <!-- Header -->
+    <div style="
+      padding:14px 20px;
+      border-bottom:1px solid var(--border-mid);
+      background:var(--surface2);
+      display:flex; align-items:center; justify-content:space-between;
+    ">
+      <span style="font-family:var(--mono);font-size:9px;font-weight:700;letter-spacing:0.2em;text-transform:uppercase;color:var(--accent);">
+        ✦ Getting Started
+      </span>
+      <span id="onboardingStepLabel" style="font-family:var(--mono);font-size:9px;color:var(--muted);">
+        Step 1 of 4
+      </span>
+    </div>
+
+    <!-- Step content -->
+    <div id="onboardingBody" style="padding:32px 28px 24px;"></div>
+
+    <!-- Footer -->
+    <div style="
+      padding:14px 20px;
+      border-top:1px solid var(--border-mid);
+      background:var(--surface2);
+      display:flex; align-items:center; justify-content:space-between; gap:10px;
+    ">
+      <button onclick="dismissOnboarding()" style="
+        font-family:var(--mono);font-size:9px;font-weight:700;
+        letter-spacing:0.1em;text-transform:uppercase;
+        color:var(--muted);background:transparent;
+        border:1px solid transparent;cursor:pointer;padding:8px;
+      ">Skip tour</button>
+      <button id="onboardingNextBtn" onclick="nextOnboardingStep()" style="
+        font-family:var(--mono);font-size:10px;font-weight:700;
+        letter-spacing:0.12em;text-transform:uppercase;
+        padding:10px 24px;background:var(--accent);color:#fff;
+        border:1px solid var(--accent);cursor:pointer;
+        transition:background 0.15s;
+      ">Next →</button>
+    </div>
+
+  </div>
+</div>
+
+<script>
+const ONBOARDING_STEPS = [
+  {
+    title: 'Welcome to ExportReady 🎬',
+    body: `You have <strong>20 free exports</strong> this month — no credit card needed.<br><br>
+           ExportReady converts your videos to any format, optimised for whatever platform you're posting to.`,
+    pct: 25,
+  },
+  {
+    title: 'Pick your platform first',
+    body: `See those platform buttons — <strong>YouTube, TikTok, Reels, Discord</strong>?<br><br>
+           Tap one before uploading and we'll auto-set the right format, resolution, and quality for you.`,
+    pct: 50,
+  },
+  {
+    title: 'Drop or browse your file',
+    body: `Drag a video onto the drop zone, or click <strong>Browse Files</strong> to pick from your device or Google Drive.<br><br>
+           Free tier supports files up to <strong>2 GB</strong>.`,
+    pct: 75,
+  },
+  {
+    title: 'Export AI has your back ✦',
+    body: `The AI panel on the right will suggest settings automatically when you drop a file.<br><br>
+           You can also just type — <em>"make it small enough for Discord"</em> or <em>"best quality for YouTube"</em>.`,
+    pct: 100,
+    last: true,
+  },
+];
+
+let _onboardingStep = 0;
+
+function renderOnboardingStep(step) {
+  const s = ONBOARDING_STEPS[step];
+  if (!s) return;
+
+  document.getElementById('onboardingProgress').style.width = s.pct + '%';
+  document.getElementById('onboardingStepLabel').textContent = `Step ${step + 1} of ${ONBOARDING_STEPS.length}`;
+  document.getElementById('onboardingBody').innerHTML = `
+    <div style="font-family:var(--sans);font-weight:800;font-size:clamp(18px,4vw,22px);
+      letter-spacing:-0.03em;color:var(--text);margin-bottom:12px;line-height:1.15;">
+      ${s.title}
+    </div>
+    <div style="font-family:var(--mono);font-size:11px;color:var(--text-mid);line-height:1.8;">
+      ${s.body}
+    </div>
+  `;
+
+  const btn = document.getElementById('onboardingNextBtn');
+  if (s.last) {
+    btn.textContent = "Let's go ✦";
+    btn.onclick = completeOnboarding;
+  } else {
+    btn.textContent = 'Next →';
+    btn.onclick = nextOnboardingStep;
+  }
+}
+
+async function nextOnboardingStep() {
+  await fetch('/onboarding/', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
+    body: JSON.stringify({ action: 'next' })
+  });
+  _onboardingStep++;
+  if (_onboardingStep >= ONBOARDING_STEPS.length) {
+    completeOnboarding();
+  } else {
+    renderOnboardingStep(_onboardingStep);
+  }
+}
+
+async function completeOnboarding() {
+  await fetch('/onboarding/', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
+    body: JSON.stringify({ action: 'complete' })
+  });
+  document.getElementById('onboardingOverlay').style.display = 'none';
+}
+
+async function dismissOnboarding() {
+  await fetch('/onboarding/', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
+    body: JSON.stringify({ action: 'dismiss' })
+  });
+  document.getElementById('onboardingOverlay').style.display = 'none';
+}
+
+async function initOnboarding() {
+  try {
+    const resp = await fetch('/onboarding/');
+    const data = await resp.json();
+    if (!data.show) return;
+    _onboardingStep = data.step || 0;
+    renderOnboardingStep(_onboardingStep);
+    document.getElementById('onboardingOverlay').style.display = 'flex';
+  } catch {}
+}
+
+// Auto-init when page loads
+document.addEventListener('DOMContentLoaded', initOnboarding);
+</script>

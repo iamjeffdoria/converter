@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import JobRecord, Feedback
+from .models import JobRecord, Feedback, OnboardingState
 
 
 @admin.register(JobRecord)
@@ -25,3 +25,5 @@ class JobRecordAdmin(admin.ModelAdmin):
     created_at_human.short_description = 'Created at'
 
 admin.site.register(Feedback)
+
+admin.site.register(OnboardingState)

@@ -16,7 +16,7 @@ import datetime
 from collections import defaultdict, Counter
 import time as _time
 from . import models
-from .models import JobRecord, Visitor, UserAccount,Feedback
+from .models import JobRecord, Visitor, UserAccount,Feedback, OnboardingState
 from django.db.models import F
 import hmac
 import hashlib
@@ -1116,6 +1116,7 @@ def analytics_dashboard(request):
     return render(request, 'converter/analytics_dashboard.html')
 
 def analytics_api(request):
+
     if not request.session.get('analytics_authed'):
         return JsonResponse({'error': 'Unauthorised'}, status=401)
 
@@ -1297,6 +1298,21 @@ def analytics_api(request):
             'ip':       str(fb.ip_address) if fb.ip_address else None,
             'when':     fb_when,
         })
+    ob_all       = OnboardingState.objects.select_related('user').all()
+    ob_completed = ob_all.filter(completed=True, step__gte=4).count()
+    ob_skipped   = ob_all.filter(completed=True, step__lt=4).count()
+    ob_in_prog   = ob_all.filter(completed=False, step__gt=0).count()
+    ob_never     = ob_all.filter(completed=False, step=0).count()
+
+    ob_records = []
+    for ob in ob_all.order_by('-id')[:100]:
+        ob_records.append({
+            'username':  ob.user.username if ob.user else '—',
+            'step':      ob.step,
+            'completed': ob.completed,
+            'created_at': ob.created_at.strftime('%b %d, %Y') if ob.created_at else '—',
+            'completed_at': ob.completed_at.strftime('%b %d, %Y') if ob.completed_at else None,
+        })
 
     # ── Build response ────────────────────────────────────────────────────
     return JsonResponse({
@@ -1344,6 +1360,13 @@ def analytics_api(request):
         'paidUsers':   users_with_credits,
         'recentUsers': recent_users,
         'feedback':    feedback_list,
+        
+        # Onboarding 
+        'obCompleted': ob_completed,
+        'obSkipped':   ob_skipped,
+        'obInProgress': ob_in_prog,
+        'obNever':     ob_never,
+        'obRecords':   ob_records,
     })
 
 
@@ -2015,3 +2038,34 @@ def submit_feedback(request):
 
     except Exception:
         return JsonResponse({'error': 'Server error. Please try again.'}, status=500)
+
+
+@login_required
+def onboarding_status(request):
+    """GET: check if onboarding needed. POST: mark a step complete."""
+    from .models import OnboardingState
+    state, _ = OnboardingState.objects.get_or_create(user=request.user)
+
+    if request.method == 'POST':
+        try:
+            body = json.loads(request.body)
+        except:
+            return JsonResponse({'error': 'Invalid JSON.'}, status=400)
+        action = body.get('action')
+        if action == 'next':
+            state.step += 1
+            state.save(update_fields=['step'])
+        elif action == 'complete':
+            state.completed = True
+            from django.utils import timezone
+            state.completed_at = timezone.now()
+            state.save(update_fields=['completed', 'completed_at'])
+        elif action == 'dismiss':
+            state.completed = True
+            state.save(update_fields=['completed'])
+        return JsonResponse({'step': state.step, 'completed': state.completed})
+
+    return JsonResponse({
+        'show': not state.completed,
+        'step': state.step,
+    })

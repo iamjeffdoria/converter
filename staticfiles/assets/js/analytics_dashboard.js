@@ -131,6 +131,7 @@ function render(d) {
   allUsers    = d.recentUsers || [];
   allFeedback = d.feedback    || [];
   renderFeedback(allFeedback);
+  
 }
 
 /* ── KPIs ── */

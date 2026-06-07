@@ -115,3 +115,19 @@ class Feedback(models.Model):
 
     def __str__(self):
         return f"[{self.category}] {self.message[:60]}..."
+
+
+
+class OnboardingState(models.Model):
+    user             = models.OneToOneField(User, on_delete=models.CASCADE, related_name='onboarding')
+    completed        = models.BooleanField(default=False)
+    step             = models.IntegerField(default=0)  # which step they're on
+    dismissed_banner = models.BooleanField(default=False)
+    created_at       = models.DateTimeField(auto_now_add=True)
+    completed_at     = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"{self.user.username} — step {self.step} ({'done' if self.completed else 'in progress'})"

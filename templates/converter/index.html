@@ -115,27 +115,12 @@
       <!-- ══ LEFT: CONVERTER COLUMN ══ -->
       <div class="converter-col">
 
-<!-- STEP 1: DROP -->
+        <!-- STEP 1: DROP -->
         <div class="section-header">
           <div class="section-num active" id="stepNum1">1</div>
           <div class="section-title-text">Drop Your Video</div>
           <div class="section-line"></div>
         </div>
-
-        {% if job_count == 0 %}
-        <div id="first-use-banner" style="
-          display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap;
-          background:var(--accent-soft);
-          border:1px solid rgba(102,0,255,0.25);
-          border-left:3px solid var(--accent);
-          padding:12px 16px; margin-bottom:16px;
-          font-family:var(--mono); font-size:10px; color:var(--text-mid); line-height:1.6;
-        ">
-          <span>👋 <strong style="color:var(--text)">Welcome!</strong> Pick a platform below and drop your first video — it's free, no card needed.</span>
-          <button onclick="document.getElementById('first-use-banner').style.display='none'"
-            style="background:none;border:none;cursor:pointer;font-size:16px;color:var(--muted);flex-shrink:0;">×</button>
-        </div>
-        {% endif %}
 
         <!-- {% if free_remaining <= 1 and credits == 0 %}
         <div style="
@@ -164,10 +149,31 @@
           ">⚡ Get Credits →</a>
         </div>
         {% endif %} -->
-
+          {% if user.is_authenticated and job_count == 0 %}
+            <div style="
+              display:flex; align-items:center; gap:10px;
+              background:var(--accent-soft);
+              border:1px solid rgba(102,0,255,0.25);
+              border-left:3px solid var(--accent);
+              padding:10px 14px;
+              margin-bottom:18px;
+              font-family:var(--mono); font-size:10px;
+              color:var(--text-mid); line-height:1.6;
+              text-align:left;
+            ">
+              <span style="font-size:14px;flex-shrink:0;">✦</span>
+             <span style="flex:1;">Welcome! Pick a platform below to get started — your first export is free, no card needed.</span>
+              <button onclick="this.closest('div').style.display='none'" style="
+                background:none; border:none; cursor:pointer;
+                font-family:var(--mono); font-size:12px;
+                color:var(--muted); padding:0 4px; line-height:1; flex-shrink:0;
+              ">✕</button>
+            </div>
+            {% endif %}
         <div id="dropZone" class="drop-zone" tabindex="0" role="button" aria-label="Upload video file">
           <div class="drop-inner">
             <div class="drop-icon-wrap"><i class="bi bi-film"></i></div>
+ 
             <div class="drop-headline">Drop your video here</div>
             <div class="drop-sub">
               MKV · MP4 · MOV · AVI · WEBM · and more — Free: 2GB · Paid: 4GB
@@ -873,6 +879,9 @@ async function submitFeedback() {
     }
 }
 </script>
+{% if user.is_authenticated %}
+  {% include 'converter/onboarding.html' %}
+{% endif %}
 <script src="{% static 'assets/js/converter.js' %}"></script>
 </body>
 </html>
