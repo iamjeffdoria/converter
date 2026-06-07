@@ -3,201 +3,95 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Sign In — Video Converter</title>
+<title>Sign In — ExportReady</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
 <style>
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 :root {
-  --bg:         #f5f5f7;
-  --surface:    #ffffff;
-  --border:     #e5e7eb;
-  --border2:    #d1d5db;
-  --text:       #111827;
-  --muted:      #374151;
-  --faint:      #6b7280;
-  --fainter:    #9ca3af;
-  --purple:     #7c3aed;
-  --purple-lt:  #ede9fe;
-  --purple-mid: #8b5cf6;
-  --purple-dk:  #5b21b6;
-  --green:      #10b981;
-  --red:        #ef4444;
-  --red-lt:     #fef2f2;
-  --sans:       'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+  --bg:        #f0f0f3;
+  --surface:   #ffffff;
+  --border:    #e5e7eb;
+  --border2:   #d1d5db;
+  --text:      #111827;
+  --muted:     #374151;
+  --faint:     #6b7280;
+  --fainter:   #9ca3af;
+  --purple:    #7c3aed;
+  --purple-lt: #ede9fe;
+  --purple-dk: #5b21b6;
+  --green:     #10b981;
+  --red:       #ef4444;
+  --red-lt:    #fef2f2;
+  --sans:      'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif;
 }
 
 html, body {
-  height: 100%;
   min-height: 100vh;
+  min-height: 100dvh;
   background: var(--bg);
   color: var(--text);
   font-family: var(--sans);
   -webkit-font-smoothing: antialiased;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px 20px;
 }
 
-.layout {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  min-height: 100vh;
-}
-
-/* ── LEFT PANEL ── */
-.panel-left {
-  background: var(--purple);
+/* Desktop: true square */
+.card {
+  background: var(--surface);
+  border-radius: 20px;
+  border: 1px solid var(--border);
+  width: 520px;
+  height: 520px;
+  padding: 48px 52px;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  padding: 48px 56px;
-  position: relative;
-  overflow: hidden;
+  animation: fadeUp .3s ease both;
+  flex-shrink: 0;
 }
 
-.panel-left::before {
-  content: '';
-  position: absolute;
-  top: -120px;
-  right: -120px;
-  width: 420px;
-  height: 420px;
-  border-radius: 50%;
-  background: rgba(255,255,255,0.05);
-  pointer-events: none;
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
 }
 
-.panel-left::after {
-  content: '';
-  position: absolute;
-  bottom: -80px;
-  left: -80px;
-  width: 320px;
-  height: 320px;
-  border-radius: 50%;
-  background: rgba(255,255,255,0.04);
-  pointer-events: none;
-}
-
-.left-brand {
+.brand {
   display: flex;
   align-items: center;
-  gap: 12px;
-  position: relative;
-  z-index: 1;
+  gap: 10px;
 }
 
 .brand-icon {
-  width: 40px;
-  height: 40px;
-  background: rgba(255,255,255,0.15);
-  border: 1px solid rgba(255,255,255,0.2);
+  width: 38px;
+  height: 38px;
+  background: var(--purple-lt);
   border-radius: 10px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 600;
-  color: #fff;
-  letter-spacing: -0.03em;
+  color: var(--purple);
   flex-shrink: 0;
 }
 
 .brand-name {
-  font-size: 17px;
+  font-size: 15px;
   font-weight: 600;
-  color: #fff;
+  color: var(--text);
   letter-spacing: -0.02em;
 }
 
-.left-body {
-  position: relative;
-  z-index: 1;
-}
-
-.left-body h2 {
-  font-size: 32px;
-  font-weight: 600;
-  color: #fff;
-  letter-spacing: -0.03em;
-  line-height: 1.2;
-  margin-bottom: 16px;
-}
-
-.left-body p {
-  font-size: 15px;
-  color: rgba(255,255,255,0.65);
-  line-height: 1.6;
-  max-width: 340px;
-}
-
-.stat-row {
-  display: flex;
-  gap: 32px;
-  margin-top: 40px;
-}
-
-.stat {
+.form-mid {
+  flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 4px;
-}
-
-.stat-num {
-  font-size: 26px;
-  font-weight: 600;
-  color: #fff;
-  letter-spacing: -0.03em;
-}
-
-.stat-label {
-  font-size: 12px;
-  color: rgba(255,255,255,0.5);
-  font-weight: 400;
-}
-
-.left-footer {
-  position: relative;
-  z-index: 1;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 12px;
-  color: rgba(255,255,255,0.4);
-}
-
-.green-dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: var(--green);
-  animation: blink 2s ease infinite;
-  flex-shrink: 0;
-}
-
-@keyframes blink { 0%,100%{opacity:1} 50%{opacity:.3} }
-
-/* ── RIGHT PANEL ── */
-.panel-right {
-  background: var(--surface);
-  display: flex;
-  align-items: center;
   justify-content: center;
-  padding: 60px 64px;
-  animation: fadeIn .35s ease both;
-}
-
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateX(10px); }
-  to   { opacity: 1; transform: translateX(0); }
-}
-
-.form-wrap {
-  width: 100%;
-  max-width: 400px;
-}
-
-.form-header {
-  margin-bottom: 36px;
 }
 
 .form-tag {
@@ -205,28 +99,28 @@ html, body {
   font-weight: 500;
   color: var(--purple);
   text-transform: uppercase;
-  letter-spacing: 0.08em;
-  margin-bottom: 10px;
+  letter-spacing: 0.09em;
+  margin-bottom: 5px;
 }
 
 .form-title {
-  font-size: 26px;
+  font-size: 22px;
   font-weight: 600;
   letter-spacing: -0.03em;
   color: var(--text);
   line-height: 1.2;
-  margin-bottom: 6px;
+  margin-bottom: 3px;
 }
 
 .form-sub {
-  font-size: 14px;
+  font-size: 13px;
   color: var(--faint);
+  margin-bottom: 20px;
 }
 
-/* Form */
-.form { display: flex; flex-direction: column; gap: 18px; }
+.form { display: flex; flex-direction: column; gap: 12px; }
 
-.field { display: flex; flex-direction: column; gap: 7px; }
+.field { display: flex; flex-direction: column; gap: 5px; }
 
 .label {
   font-size: 13px;
@@ -239,15 +133,15 @@ html, body {
 .input {
   width: 100%;
   background: var(--bg);
-  border: 1px solid var(--border2);
-  border-radius: 9px;
-  padding: 12px 16px;
+  border: 1.5px solid var(--border2);
+  border-radius: 10px;
+  padding: 11px 14px;
   font-size: 14px;
   font-family: var(--sans);
-  font-weight: 400;
   color: var(--text);
   outline: none;
   transition: border-color .15s, box-shadow .15s, background .15s;
+  -webkit-appearance: none;
 }
 .input::placeholder { color: var(--fainter); }
 .input:focus {
@@ -258,7 +152,7 @@ html, body {
 
 .pw-toggle {
   position: absolute;
-  right: 14px;
+  right: 12px;
   top: 50%;
   transform: translateY(-50%);
   background: none;
@@ -269,6 +163,7 @@ html, body {
   font-size: 12px;
   font-weight: 500;
   transition: color .15s;
+  padding: 4px;
 }
 .pw-toggle:hover { color: var(--purple); }
 
@@ -278,16 +173,16 @@ html, body {
   color: var(--red);
   background: var(--red-lt);
   border: 1px solid #fecaca;
-  border-radius: 8px;
-  padding: 10px 14px;
+  border-radius: 9px;
+  padding: 9px 13px;
   animation: shake .3s ease;
 }
 .error-msg.show { display: block; }
 
 @keyframes shake {
   0%,100%{ transform: translateX(0); }
-  25%    { transform: translateX(-4px); }
-  75%    { transform: translateX(4px); }
+  25%    { transform: translateX(-5px); }
+  75%    { transform: translateX(5px); }
 }
 
 .btn-submit {
@@ -296,7 +191,7 @@ html, body {
   padding: 13px 16px;
   background: var(--purple);
   border: none;
-  border-radius: 9px;
+  border-radius: 10px;
   font-family: var(--sans);
   font-size: 15px;
   font-weight: 500;
@@ -307,13 +202,13 @@ html, body {
   position: relative;
   overflow: hidden;
 }
-.btn-submit:hover   { background: var(--purple-dk); box-shadow: 0 4px 14px rgba(124,58,237,0.3); }
+.btn-submit:hover   { background: var(--purple-dk); box-shadow: 0 4px 16px rgba(124,58,237,0.32); }
 .btn-submit:active  { transform: scale(.99); }
 .btn-submit:disabled { opacity: .5; cursor: not-allowed; transform: none; box-shadow: none; }
 
 .btn-spinner {
   display: none;
-  width: 16px; height: 16px;
+  width: 17px; height: 17px;
   border: 2px solid rgba(255,255,255,0.3);
   border-top-color: #fff;
   border-radius: 50%;
@@ -327,145 +222,132 @@ html, body {
 .btn-submit.loading .btn-spinner { display: block; }
 
 .form-footer {
-  margin-top: 24px;
-  padding-top: 20px;
+  padding-top: 14px;
   border-top: 1px solid var(--border);
   display: flex;
   align-items: center;
   justify-content: space-between;
 }
 
-.restricted-badge {
-  display: inline-flex;
+.status {
+  display: flex;
   align-items: center;
-  gap: 5px;
+  gap: 6px;
   font-size: 12px;
-  font-weight: 500;
-  color: var(--purple);
-  background: var(--purple-lt);
-  border-radius: 99px;
-  padding: 4px 10px;
+  color: var(--faint);
 }
 
-.version {
-  font-size: 12px;
-  color: var(--fainter);
+.green-dot {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: var(--green);
+  animation: blink 2s ease infinite;
+  flex-shrink: 0;
+}
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:.3} }
+
+.version { font-size: 12px; color: var(--fainter); }
+
+/* Tablet */
+@media (max-width: 580px) {
+  html, body { align-items: flex-start; padding: 20px 16px; }
+  .card {
+    width: 100%;
+    height: auto;
+    min-height: 0;
+    padding: 32px 28px;
+    border-radius: 18px;
+    flex-shrink: 1;
+  }
+  .form-mid {
+    justify-content: flex-start;
+    margin: 24px 0 20px;
+  }
 }
 
-@media (max-width: 768px) {
-  .layout { grid-template-columns: 1fr; }
-  .panel-left { display: none; }
-  .panel-right { padding: 40px 28px; }
+/* Small phone */
+@media (max-width: 380px) {
+  html, body { padding: 12px; }
+  .card { padding: 26px 20px; border-radius: 16px; }
+  .brand-icon { width: 34px; height: 34px; font-size: 12px; }
+  .form-title { font-size: 20px; }
+  .form-sub { font-size: 12px; margin-bottom: 16px; }
+  .input { padding: 10px 12px; font-size: 14px; }
+  .btn-submit { padding: 12px 14px; font-size: 14px; }
+  .form { gap: 10px; }
 }
 </style>
 </head>
 <body>
 
-<div class="layout">
+<div class="card">
 
-  <!-- Left branding panel -->
-  <div class="panel-left">
-    <div class="left-brand">
-      <div class="brand-icon">ER</div>
-      <div class="brand-name">ExportReady</div>
-    </div>
-
-    <div class="left-body">
-      <h2>Analytics &amp; insights for your converter</h2>
-      <p>Monitor jobs, track users, and review feedback — all in one place. Restricted to authorised personnel.</p>
-
-      <div class="stat-row">
-        <div class="stat">
-          <span class="stat-num">35</span>
-          <span class="stat-label">Registered users</span>
-        </div>
-        <div class="stat">
-          <span class="stat-num">18</span>
-          <span class="stat-label">New this week</span>
-        </div>
-        <div class="stat">
-          <span class="stat-num">29</span>
-          <span class="stat-label">New this month</span>
-        </div>
-      </div>
-    </div>
-
-    <div class="left-footer">
-      <span class="green-dot"></span>
-      Server online &nbsp;·&nbsp; v1.0.0
-    </div>
+  <div class="brand">
+    <div class="brand-icon">ER</div>
+    <div class="brand-name">ExportReady</div>
   </div>
 
-  <!-- Right form panel -->
-  <div class="panel-right">
-    <div class="form-wrap">
+  <div class="form-mid">
+    <div class="form-tag">Analytics Dashboard</div>
+    <div class="form-title">Sign in</div>
+    <div class="form-sub">Enter your credentials to continue</div>
 
-      <div class="form-header">
-        <div class="form-tag">Analytics Dashboard</div>
-        <div class="form-title">Sign in</div>
-        <div class="form-sub">Enter your credentials to continue</div>
+    <form class="form" id="loginForm" method="POST" action="{% url 'analytics_login' %}">
+      {% csrf_token %}
+
+      <div class="field">
+        <label class="label" for="username">Username</label>
+        <div class="input-wrap">
+          <input
+            class="input"
+            type="text"
+            id="username"
+            name="username"
+            placeholder="Enter your username"
+            autocomplete="username"
+            autocapitalize="none"
+            value="{{ request.POST.username }}"
+            autofocus
+          >
+        </div>
       </div>
 
-      <form class="form" id="loginForm" method="POST" action="{% url 'analytics_login' %}">
-        {% csrf_token %}
-
-        <div class="field">
-          <label class="label" for="username">Username</label>
-          <div class="input-wrap">
-            <input
-              class="input"
-              type="text"
-              id="username"
-              name="username"
-              placeholder="Enter your username"
-              autocomplete="username"
-              autocapitalize="none"
-              value="{{ request.POST.username }}"
-              autofocus
-            >
-          </div>
+      <div class="field">
+        <label class="label" for="password">Password</label>
+        <div class="input-wrap">
+          <input
+            class="input"
+            type="password"
+            id="password"
+            name="password"
+            placeholder="••••••••"
+            autocomplete="current-password"
+            style="padding-right: 56px"
+          >
+          <button type="button" class="pw-toggle" id="pwToggle" tabindex="-1">Show</button>
         </div>
-
-        <div class="field">
-          <label class="label" for="password">Password</label>
-          <div class="input-wrap">
-            <input
-              class="input"
-              type="password"
-              id="password"
-              name="password"
-              placeholder="••••••••"
-              autocomplete="current-password"
-              style="padding-right: 56px"
-            >
-            <button type="button" class="pw-toggle" id="pwToggle" tabindex="-1">Show</button>
-          </div>
-        </div>
-
-        {% if error %}
-        <div class="error-msg show" id="errorMsg">{{ error }}</div>
-        {% else %}
-        <div class="error-msg" id="errorMsg"></div>
-        {% endif %}
-
-        <button type="submit" class="btn-submit" id="submitBtn">
-          <span class="btn-text">Sign in →</span>
-          <span class="btn-spinner"></span>
-        </button>
-
-      </form>
-
-      <div class="form-footer">
-        <div class="restricted-badge">
-          <svg width="11" height="11" viewBox="0 0 12 12" fill="none" aria-hidden="true">
-            <path d="M9 5H3V4a3 3 0 1 1 6 0v1zm1 0V4A4 4 0 0 0 2 4v1a1 1 0 0 0-1 1v4a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V6a1 1 0 0 0-1-1z" fill="currentColor"/>
-          </svg>
-          Authorised personnel only
-        </div>
-        <div class="version">v1.0.0</div>
       </div>
 
+      {% if error %}
+      <div class="error-msg show" id="errorMsg">{{ error }}</div>
+      {% else %}
+      <div class="error-msg" id="errorMsg"></div>
+      {% endif %}
+
+      <button type="submit" class="btn-submit" id="submitBtn">
+        <span class="btn-text">Sign in →</span>
+        <span class="btn-spinner"></span>
+      </button>
+
+    </form>
+  </div>
+
+  <div class="form-footer">
+    <div class="status">
+      <span class="green-dot"></span>
+      Server online
     </div>
+    <div class="version">v1.0.0</div>
   </div>
 
 </div>
