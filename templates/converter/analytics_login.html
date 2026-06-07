@@ -28,6 +28,7 @@
 }
 
 html, body {
+  height: 100%;
   min-height: 100vh;
   min-height: 100dvh;
   background: var(--bg);
@@ -40,7 +41,7 @@ html, body {
   padding: 24px 20px;
 }
 
-/* Desktop: true square */
+/* ── DESKTOP: 520×520 square ── */
 .card {
   background: var(--surface);
   border-radius: 20px;
@@ -52,7 +53,6 @@ html, body {
   flex-direction: column;
   justify-content: space-between;
   animation: fadeUp .3s ease both;
-  flex-shrink: 0;
 }
 
 @keyframes fadeUp {
@@ -123,7 +123,7 @@ html, body {
 .field { display: flex; flex-direction: column; gap: 5px; }
 
 .label {
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 500;
   color: var(--muted);
 }
@@ -135,8 +135,8 @@ html, body {
   background: var(--bg);
   border: 1.5px solid var(--border2);
   border-radius: 10px;
-  padding: 11px 14px;
-  font-size: 14px;
+  padding: 13px 14px;
+  font-size: 16px;
   font-family: var(--sans);
   color: var(--text);
   outline: none;
@@ -152,7 +152,7 @@ html, body {
 
 .pw-toggle {
   position: absolute;
-  right: 12px;
+  right: 14px;
   top: 50%;
   transform: translateY(-50%);
   background: none;
@@ -160,7 +160,7 @@ html, body {
   cursor: pointer;
   color: var(--faint);
   font-family: var(--sans);
-  font-size: 12px;
+  font-size: 14px;
   font-weight: 500;
   transition: color .15s;
   padding: 4px;
@@ -169,12 +169,12 @@ html, body {
 
 .error-msg {
   display: none;
-  font-size: 13px;
+  font-size: 14px;
   color: var(--red);
   background: var(--red-lt);
   border: 1px solid #fecaca;
   border-radius: 9px;
-  padding: 9px 13px;
+  padding: 11px 14px;
   animation: shake .3s ease;
 }
 .error-msg.show { display: block; }
@@ -188,12 +188,12 @@ html, body {
 .btn-submit {
   width: 100%;
   margin-top: 4px;
-  padding: 13px 16px;
+  padding: 15px 16px;
   background: var(--purple);
   border: none;
   border-radius: 10px;
   font-family: var(--sans);
-  font-size: 15px;
+  font-size: 16px;
   font-weight: 500;
   color: #fff;
   cursor: pointer;
@@ -201,14 +201,15 @@ html, body {
   transition: background .15s, transform .1s, box-shadow .15s;
   position: relative;
   overflow: hidden;
+  -webkit-tap-highlight-color: transparent;
 }
 .btn-submit:hover   { background: var(--purple-dk); box-shadow: 0 4px 16px rgba(124,58,237,0.32); }
-.btn-submit:active  { transform: scale(.99); }
+.btn-submit:active  { transform: scale(.98); }
 .btn-submit:disabled { opacity: .5; cursor: not-allowed; transform: none; box-shadow: none; }
 
 .btn-spinner {
   display: none;
-  width: 17px; height: 17px;
+  width: 18px; height: 18px;
   border: 2px solid rgba(255,255,255,0.3);
   border-top-color: #fff;
   border-radius: 50%;
@@ -245,36 +246,43 @@ html, body {
   flex-shrink: 0;
 }
 @keyframes blink { 0%,100%{opacity:1} 50%{opacity:.3} }
-
 .version { font-size: 12px; color: var(--fainter); }
 
-/* Tablet */
+/* ── MOBILE: fill entire screen properly ── */
 @media (max-width: 580px) {
-  html, body { align-items: flex-start; padding: 20px 16px; }
+  html, body {
+    padding: 0;
+    align-items: stretch;
+    background: var(--surface);
+  }
+
   .card {
     width: 100%;
-    height: auto;
-    min-height: 0;
-    padding: 32px 28px;
-    border-radius: 18px;
-    flex-shrink: 1;
+    height: 100vh;
+    height: 100dvh;
+    border-radius: 0;
+    border: none;
+    padding: 52px 28px 36px;
+    box-shadow: none;
+    /* brand top, form center, footer bottom */
+    justify-content: space-between;
   }
-  .form-mid {
-    justify-content: flex-start;
-    margin: 24px 0 20px;
-  }
-}
 
-/* Small phone */
-@media (max-width: 380px) {
-  html, body { padding: 12px; }
-  .card { padding: 26px 20px; border-radius: 16px; }
-  .brand-icon { width: 34px; height: 34px; font-size: 12px; }
-  .form-title { font-size: 20px; }
-  .form-sub { font-size: 12px; margin-bottom: 16px; }
-  .input { padding: 10px 12px; font-size: 14px; }
-  .btn-submit { padding: 12px 14px; font-size: 14px; }
-  .form { gap: 10px; }
+  .form-mid {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 0;
+  }
+
+  .form-title  { font-size: 26px; }
+  .form-sub    { font-size: 14px; margin-bottom: 24px; }
+  .label       { font-size: 15px; }
+  .form        { gap: 16px; }
+  .field       { gap: 7px; }
+  .brand-icon  { width: 42px; height: 42px; font-size: 14px; }
+  .brand-name  { font-size: 17px; }
 }
 </style>
 </head>
@@ -322,7 +330,7 @@ html, body {
             name="password"
             placeholder="••••••••"
             autocomplete="current-password"
-            style="padding-right: 56px"
+            style="padding-right: 60px"
           >
           <button type="button" class="pw-toggle" id="pwToggle" tabindex="-1">Show</button>
         </div>
