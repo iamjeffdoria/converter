@@ -101,6 +101,7 @@ _reaper_thread.start()
 def index(request):
     credits = 0
     free_remaining = 0
+    job_count = 0
     if request.user.is_authenticated:
         account, _ = UserAccount.objects.get_or_create(
             user=request.user,
@@ -108,11 +109,13 @@ def index(request):
         )
         credits = account.credits
         free_remaining = account.get_free_remaining()
+        job_count = JobRecord.objects.filter(user=request.user).count()
     
     response = render(request, 'converter/index.html', {
         'credits': credits,
         'free_remaining': free_remaining,
         'user': request.user,
+        'job_count': job_count,
     })
     return _track_visitor(request, response)
 

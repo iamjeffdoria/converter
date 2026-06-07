@@ -115,12 +115,27 @@
       <!-- ══ LEFT: CONVERTER COLUMN ══ -->
       <div class="converter-col">
 
-        <!-- STEP 1: DROP -->
+<!-- STEP 1: DROP -->
         <div class="section-header">
           <div class="section-num active" id="stepNum1">1</div>
           <div class="section-title-text">Drop Your Video</div>
           <div class="section-line"></div>
         </div>
+
+        {% if job_count == 0 %}
+        <div id="first-use-banner" style="
+          display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap;
+          background:var(--accent-soft);
+          border:1px solid rgba(102,0,255,0.25);
+          border-left:3px solid var(--accent);
+          padding:12px 16px; margin-bottom:16px;
+          font-family:var(--mono); font-size:10px; color:var(--text-mid); line-height:1.6;
+        ">
+          <span>👋 <strong style="color:var(--text)">Welcome!</strong> Pick a platform below and drop your first video — it's free, no card needed.</span>
+          <button onclick="document.getElementById('first-use-banner').style.display='none'"
+            style="background:none;border:none;cursor:pointer;font-size:16px;color:var(--muted);flex-shrink:0;">×</button>
+        </div>
+        {% endif %}
 
         <!-- {% if free_remaining <= 1 and credits == 0 %}
         <div style="
