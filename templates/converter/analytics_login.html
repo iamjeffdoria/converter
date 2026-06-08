@@ -1,30 +1,34 @@
+{% load static %}
 <!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Sign In — ExportReady</title>
+<title>Sign In — ExportReady Analytics</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 :root {
-  --bg:        #f0f0f3;
-  --surface:   #ffffff;
-  --border:    #e5e7eb;
-  --border2:   #d1d5db;
-  --text:      #111827;
-  --muted:     #374151;
-  --faint:     #6b7280;
-  --fainter:   #9ca3af;
-  --purple:    #7c3aed;
-  --purple-lt: #ede9fe;
-  --purple-dk: #5b21b6;
-  --green:     #10b981;
-  --red:       #ef4444;
-  --red-lt:    #fef2f2;
-  --sans:      'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+  --bg:          #f5f7fa;
+  --surface:     #ffffff;
+  --border:      #e4e8ef;
+  --border-in:   #cdd4df;
+  --text:        #111827;
+  --muted:       #4b5563;
+  --faint:       #6b7280;
+  --fainter:     #9ca3af;
+  --accent:      #2563eb;
+  --accent-lt:   #eff6ff;
+  --accent-dk:   #1d4ed8;
+  --accent-glow: rgba(37, 99, 235, 0.09);
+  --green:       #16a34a;
+  --red:         #dc2626;
+  --red-lt:      #fef2f2;
+  --sans:        'Inter', system-ui, sans-serif;
+  --radius:      10px;
+  --radius-lg:   16px;
 }
 
 html, body {
@@ -41,89 +45,142 @@ html, body {
   padding: 24px 20px;
 }
 
-/* ── DESKTOP: 520×520 square ── */
-.card {
-  background: var(--surface);
-  border-radius: 20px;
-  border: 1px solid var(--border);
-  width: 520px;
-  height: 520px;
-  padding: 48px 52px;
+/* ── LAYOUT SHELL ─────────────────────────────────────────────── */
+.shell {
+  width: 100%;
+  max-width: 420px;
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
-  animation: fadeUp .3s ease both;
+  gap: 0;
+  animation: fadeUp .28s ease both;
 }
 
 @keyframes fadeUp {
-  from { opacity: 0; transform: translateY(8px); }
+  from { opacity: 0; transform: translateY(10px); }
   to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ── TOPBAR STRIP (matches dashboard topbar feel) ─────────────── */
+.topbar-strip {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-bottom: none;
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  padding: 14px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
 }
 
 .brand {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 9px;
 }
 
 .brand-icon {
-  width: 38px;
-  height: 38px;
-  background: var(--purple-lt);
-  border-radius: 10px;
+  width: 30px;
+  height: 30px;
+  background: var(--accent-lt);
+  border-radius: 7px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--purple);
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--accent);
+  letter-spacing: -0.02em;
   flex-shrink: 0;
 }
 
 .brand-name {
-  font-size: 15px;
+  font-size: 14px;
   font-weight: 600;
   color: var(--text);
   letter-spacing: -0.02em;
 }
 
-.form-mid {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
+.brand-slash {
+  font-size: 13px;
+  color: var(--fainter);
+  font-weight: 400;
+  margin-left: 2px;
 }
 
-.form-tag {
+.live-pill {
+  display: flex;
+  align-items: center;
+  gap: 5px;
   font-size: 11px;
   font-weight: 500;
-  color: var(--purple);
+  color: var(--green);
+  letter-spacing: 0.04em;
+}
+
+.live-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--green);
+  animation: blink 2s ease infinite;
+  flex-shrink: 0;
+}
+
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.3; }
+}
+
+/* ── MAIN CARD ────────────────────────────────────────────────── */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-top: 1px solid var(--border);
+  border-radius: 0 0 var(--radius-lg) var(--radius-lg);
+  padding: 32px 32px 28px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.06);
+}
+
+/* ── DIVIDER between topbar and card ─────────────────────────── */
+.topbar-strip + .card {
+  border-top: 1px solid var(--border);
+}
+
+/* ── HEADING ──────────────────────────────────────────────────── */
+.form-head { display: flex; flex-direction: column; gap: 4px; }
+
+.form-tag {
+  font-size: 10.5px;
+  font-weight: 600;
+  color: var(--accent);
   text-transform: uppercase;
   letter-spacing: 0.09em;
-  margin-bottom: 5px;
 }
 
 .form-title {
-  font-size: 22px;
-  font-weight: 600;
-  letter-spacing: -0.03em;
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
   color: var(--text);
-  line-height: 1.2;
-  margin-bottom: 3px;
+  line-height: 1.25;
 }
 
 .form-sub {
   font-size: 13px;
   color: var(--faint);
-  margin-bottom: 20px;
+  margin-top: 1px;
 }
 
-.form { display: flex; flex-direction: column; gap: 12px; }
+/* ── FORM ─────────────────────────────────────────────────────── */
+.form { display: flex; flex-direction: column; gap: 14px; }
 
-.field { display: flex; flex-direction: column; gap: 5px; }
+.field { display: flex; flex-direction: column; gap: 6px; }
 
 .label {
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 500;
   color: var(--muted);
 }
@@ -133,26 +190,28 @@ html, body {
 .input {
   width: 100%;
   background: var(--bg);
-  border: 1.5px solid var(--border2);
-  border-radius: 10px;
-  padding: 13px 14px;
-  font-size: 16px;
+  border: 1.5px solid var(--border-in);
+  border-radius: var(--radius);
+  padding: 11px 13px;
+  font-size: 14.5px;
   font-family: var(--sans);
   color: var(--text);
   outline: none;
   transition: border-color .15s, box-shadow .15s, background .15s;
   -webkit-appearance: none;
 }
+
 .input::placeholder { color: var(--fainter); }
+
 .input:focus {
-  border-color: var(--purple);
+  border-color: var(--accent);
   background: #fff;
-  box-shadow: 0 0 0 3px rgba(124,58,237,0.1);
+  box-shadow: 0 0 0 3px var(--accent-glow);
 }
 
 .pw-toggle {
   position: absolute;
-  right: 14px;
+  right: 12px;
   top: 50%;
   transform: translateY(-50%);
   background: none;
@@ -160,41 +219,44 @@ html, body {
   cursor: pointer;
   color: var(--faint);
   font-family: var(--sans);
-  font-size: 14px;
+  font-size: 12.5px;
   font-weight: 500;
   transition: color .15s;
-  padding: 4px;
+  padding: 4px 2px;
 }
-.pw-toggle:hover { color: var(--purple); }
 
+.pw-toggle:hover { color: var(--accent); }
+
+/* ── ERROR ────────────────────────────────────────────────────── */
 .error-msg {
   display: none;
-  font-size: 14px;
+  font-size: 13px;
   color: var(--red);
   background: var(--red-lt);
   border: 1px solid #fecaca;
-  border-radius: 9px;
-  padding: 11px 14px;
-  animation: shake .3s ease;
+  border-radius: 8px;
+  padding: 10px 13px;
+  animation: shake .28s ease;
 }
+
 .error-msg.show { display: block; }
 
 @keyframes shake {
-  0%,100%{ transform: translateX(0); }
-  25%    { transform: translateX(-5px); }
-  75%    { transform: translateX(5px); }
+  0%, 100% { transform: translateX(0); }
+  25%       { transform: translateX(-5px); }
+  75%       { transform: translateX(5px); }
 }
 
+/* ── SUBMIT BUTTON ────────────────────────────────────────────── */
 .btn-submit {
   width: 100%;
-  margin-top: 4px;
-  padding: 15px 16px;
-  background: var(--purple);
+  padding: 12px 16px;
+  background: var(--accent);
   border: none;
-  border-radius: 10px;
+  border-radius: var(--radius);
   font-family: var(--sans);
-  font-size: 16px;
-  font-weight: 500;
+  font-size: 14.5px;
+  font-weight: 600;
   color: #fff;
   cursor: pointer;
   letter-spacing: -0.01em;
@@ -203,102 +265,118 @@ html, body {
   overflow: hidden;
   -webkit-tap-highlight-color: transparent;
 }
-.btn-submit:hover   { background: var(--purple-dk); box-shadow: 0 4px 16px rgba(124,58,237,0.32); }
+
+.btn-submit:hover {
+  background: var(--accent-dk);
+  box-shadow: 0 4px 16px rgba(37, 99, 235, 0.26);
+}
+
 .btn-submit:active  { transform: scale(.98); }
 .btn-submit:disabled { opacity: .5; cursor: not-allowed; transform: none; box-shadow: none; }
 
 .btn-spinner {
   display: none;
-  width: 18px; height: 18px;
-  border: 2px solid rgba(255,255,255,0.3);
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
   border-top-color: #fff;
   border-radius: 50%;
   animation: spin .5s linear infinite;
   position: absolute;
-  left: 50%; top: 50%;
-  transform: translate(-50%,-50%);
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
 }
-@keyframes spin { to { transform: translate(-50%,-50%) rotate(360deg); } }
+
+@keyframes spin { to { transform: translate(-50%, -50%) rotate(360deg); } }
+
 .btn-submit.loading .btn-text    { opacity: 0; }
 .btn-submit.loading .btn-spinner { display: block; }
 
-.form-footer {
-  padding-top: 14px;
-  border-top: 1px solid var(--border);
+/* ── FOOTER ───────────────────────────────────────────────────── */
+.card-footer {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+  margin-top: 4px;
 }
 
-.status {
+.footer-status {
   display: flex;
   align-items: center;
   gap: 6px;
-  font-size: 12px;
+  font-size: 11.5px;
   color: var(--faint);
 }
 
-.green-dot {
-  width: 6px; height: 6px;
-  border-radius: 50%;
-  background: var(--green);
-  animation: blink 2s ease infinite;
-  flex-shrink: 0;
+.footer-version {
+  font-size: 11px;
+  color: var(--fainter);
 }
-@keyframes blink { 0%,100%{opacity:1} 50%{opacity:.3} }
-.version { font-size: 12px; color: var(--fainter); }
 
-/* ── MOBILE: fill entire screen properly ── */
-@media (max-width: 580px) {
+/* ── MOBILE ───────────────────────────────────────────────────── */
+@media (max-width: 480px) {
   html, body {
     padding: 0;
     align-items: stretch;
     background: var(--surface);
   }
 
-  .card {
-    width: 100%;
+  .shell {
+    max-width: 100%;
     height: 100vh;
     height: 100dvh;
+    gap: 0;
+  }
+
+  .topbar-strip {
+    border-radius: 0;
+    border-left: none;
+    border-right: none;
+    border-top: none;
+    padding: 16px 20px;
+  }
+
+  .card {
+    flex: 1;
     border-radius: 0;
     border: none;
-    padding: 52px 28px 36px;
+    border-top: 1px solid var(--border);
     box-shadow: none;
-    /* brand top, form center, footer bottom */
+    padding: 32px 24px 28px;
     justify-content: space-between;
   }
 
-  .form-mid {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    padding: 0;
-  }
-
-  .form-title  { font-size: 26px; }
-  .form-sub    { font-size: 14px; margin-bottom: 24px; }
-  .label       { font-size: 15px; }
-  .form        { gap: 16px; }
-  .field       { gap: 7px; }
-  .brand-icon  { width: 42px; height: 42px; font-size: 14px; }
-  .brand-name  { font-size: 17px; }
+  .form-title { font-size: 22px; }
 }
 </style>
 </head>
 <body>
 
-<div class="card">
+<div class="shell">
 
-  <div class="brand">
-    <div class="brand-icon">ER</div>
-    <div class="brand-name">ExportReady</div>
+  <!-- Topbar strip — mirrors dashboard header -->
+  <div class="topbar-strip">
+    <div class="brand">
+      <div class="brand-icon">ER</div>
+      <div class="brand-name">ExportReady <span class="brand-slash">/ analytics</span></div>
+    </div>
+    <div class="live-pill">
+      <span class="live-dot"></span>
+      LIVE
+    </div>
   </div>
 
-  <div class="form-mid">
-    <div class="form-tag">Analytics Dashboard</div>
-    <div class="form-title">Sign in</div>
-    <div class="form-sub">Enter your credentials to continue</div>
+  <!-- Main card -->
+  <div class="card">
+
+    <div class="form-head">
+      <div class="form-tag">Analytics Dashboard</div>
+      <div class="form-title">Sign in</div>
+      <div class="form-sub">Enter your credentials to continue</div>
+    </div>
 
     <form class="form" id="loginForm" method="POST" action="{% url 'analytics_login' %}">
       {% csrf_token %}
@@ -330,7 +408,7 @@ html, body {
             name="password"
             placeholder="••••••••"
             autocomplete="current-password"
-            style="padding-right: 60px"
+            style="padding-right: 52px"
           >
           <button type="button" class="pw-toggle" id="pwToggle" tabindex="-1">Show</button>
         </div>
@@ -348,16 +426,16 @@ html, body {
       </button>
 
     </form>
-  </div>
 
-  <div class="form-footer">
-    <div class="status">
-      <span class="green-dot"></span>
-      Server online
+    <div class="card-footer">
+      <div class="footer-status">
+        <span class="live-dot"></span>
+        Server online
+      </div>
+      <div class="footer-version">v1.0.0</div>
     </div>
-    <div class="version">v1.0.0</div>
-  </div>
 
+  </div>
 </div>
 
 <script>

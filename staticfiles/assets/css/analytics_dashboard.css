@@ -847,4 +847,39 @@ canvas {
 @media (max-width: 480px) {
   .kpi-grid { grid-template-columns: 1fr; }
   .topbar-meta { display: none; }
+
+  .topbar {
+    height: auto;
+    padding: 10px 14px;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .topbar-brand {
+    font-size: 0.85rem;
+    flex: 1;
+    min-width: 0;
+  }
+
+  .topbar-brand span {
+    display: none;
+  }
+
+  .topbar-actions {
+    display: flex;
+    gap: 6px;
+    flex-shrink: 0;
+  }
+
+  .btn-ghost {
+    padding: 6px 10px;
+    font-size: 0.68rem;
+    gap: 4px;
+  }
+
+  .btn-ghost svg {
+    width: 11px;
+    height: 11px;
+  }
+  .btn-label { display: none; }
 }

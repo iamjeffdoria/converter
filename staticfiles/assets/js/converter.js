@@ -32,20 +32,16 @@ const SUPPORTED   = new Set(['.mkv','.mp4','.avi','.mov','.webm','.flv','.wmv','
 const SESSION_KEY = 'vc_active_job';
 
 
+
 // ── SESSION ──
 function saveSession(jobId, filename, fmt) {
-  const data = JSON.stringify({ jobId, filename, fmt, ts: Date.now() });
-  sessionStorage.setItem(SESSION_KEY, data);
-  localStorage.setItem(SESSION_KEY, data); // persist across refreshes
+  sessionStorage.setItem(SESSION_KEY, JSON.stringify({ jobId, filename, fmt, ts: Date.now() }));
 }
-function clearSession() {
-  sessionStorage.removeItem(SESSION_KEY);
-  localStorage.removeItem(SESSION_KEY);
-}
+function clearSession() { sessionStorage.removeItem(SESSION_KEY); }
 
 window.addEventListener('DOMContentLoaded', async () => {
   highlightSelectedFormat();
-  const raw = localStorage.getItem(SESSION_KEY) || sessionStorage.getItem(SESSION_KEY);
+  const raw = sessionStorage.getItem(SESSION_KEY);
   if (!raw) return;
   let saved;
   try { saved = JSON.parse(raw); } catch { clearSession(); return; }
@@ -54,8 +50,9 @@ window.addEventListener('DOMContentLoaded', async () => {
     const data = await fetch(`/active-job/${saved.jobId}/`).then(r => r.json());
     if (data.error) { clearSession(); return; }
     if (['converting','queued','paused'].includes(data.status)) {
-      // Auto-reconnect silently — no need to click the banner
-      reconnectToJob(saved, data);
+      reconnectFilename.textContent = saved.filename || data.input_name || saved.jobId;
+      reconnectBanner.classList.add('active');
+      reconnectBanner.addEventListener('click', () => reconnectToJob(saved, data));
     } else if (data.status === 'done') {
       reconnectToJob(saved, data);
     } else { clearSession(); }
@@ -263,8 +260,33 @@ let pendingFile = null;
 let videoObjectUrl = null;
 
 async function handleFile(file) {
-  const ext = '.' + file.name.split('.').pop().toLowerCase();
-  if (!SUPPORTED.has(ext)) { alert(`Unsupported: ${ext}`); return; }
+  // Android sometimes gives a UUID temp name with no extension
+  // Try to get extension from file.type if name has none
+  let filename = file.name || '';
+  let ext = '.' + filename.split('.').pop().toLowerCase();
+
+  // Fallback: derive extension from MIME type
+  if (!SUPPORTED.has(ext) || filename === ext) {
+    const mimeMap = {
+      'video/mp4':        '.mp4',
+      'video/x-matroska': '.mkv',
+      'video/quicktime':  '.mov',
+      'video/x-msvideo':  '.avi',
+      'video/webm':       '.webm',
+      'video/x-flv':      '.flv',
+      'video/x-ms-wmv':   '.wmv',
+      'video/mp2t':       '.ts',
+      'video/x-m4v':      '.m4v',
+      'video/3gpp':       '.3gp',
+    };
+    const guessed = mimeMap[file.type];
+    if (guessed) {
+      ext = guessed;
+      filename = 'video' + ext; // clean fallback name
+    }
+  }
+
+  if (!SUPPORTED.has(ext)) { alert(`Unsupported: ${ext} (${file.type})`); return; }
   if (currentJobId) { clearInterval(pollTimer); clearInterval(elapsedTimer); fetch(`/cleanup/${currentJobId}/`, { method:'POST' }); clearSession(); }
 
   pendingFile = file;
@@ -291,14 +313,67 @@ document.getElementById('completeBanner')?.classList.remove('active');
   document.getElementById('thumbPreview').classList.remove('active');
   document.getElementById('sizeCompare').classList.remove('active');
   // Video preview — static element in HTML, just populate it
-  if (videoObjectUrl) { URL.revokeObjectURL(videoObjectUrl); videoObjectUrl = null; }
-  videoObjectUrl = URL.createObjectURL(file);
-  const videoEl = document.getElementById('videoPreviewEl');
-  const previewWrap = document.getElementById('videoPreviewWrap');
-  const previewSizeEl = document.getElementById('previewFileSize');
-  if (videoEl) videoEl.src = videoObjectUrl;
-  if (previewSizeEl) previewSizeEl.textContent = humanSize(file.size);
-  if (previewWrap) previewWrap.style.display = '';
+if (videoObjectUrl) { URL.revokeObjectURL(videoObjectUrl); videoObjectUrl = null; }
+
+const videoEl = document.getElementById('videoPreviewEl');
+const previewWrap = document.getElementById('videoPreviewWrap');
+const previewSizeEl = document.getElementById('previewFileSize');
+if (previewSizeEl) previewSizeEl.textContent = humanSize(file.size);
+
+if (videoEl) {
+  // Full reset first — critical on Android
+  videoEl.pause();
+  videoEl.removeAttribute('src');
+  videoEl.load();
+
+  try {
+    videoObjectUrl = URL.createObjectURL(file);
+    videoEl.src = videoObjectUrl;
+    videoEl.load();
+
+    // Android Chrome needs this sequence to actually render
+    videoEl.addEventListener('loadedmetadata', () => {
+      if (previewWrap) previewWrap.style.display = '';
+      videoEl.muted = true;
+      videoEl.play().catch(() => {
+        // Autoplay blocked — fine, user taps play
+      });
+    }, { once: true });
+
+    // Fallback: show preview wrap after 2s even if metadata stalls
+    setTimeout(() => {
+      if (previewWrap) previewWrap.style.display = '';
+    }, 2000);
+
+    videoEl.onerror = () => {
+      // Blob failed — hide broken preview gracefully
+      if (previewWrap) previewWrap.style.display = 'none';
+    };
+
+  } catch (e) {
+    // createObjectURL failed — hide preview, still allow upload
+    if (previewWrap) previewWrap.style.display = 'none';
+  }
+}
+
+if (videoEl) {
+  // Reset before assigning — avoids stale state on mobile
+  videoEl.pause();
+  videoEl.removeAttribute('src');
+  videoEl.load();
+
+  videoEl.src = videoObjectUrl;
+
+  // Mobile: load() must be called after src is set, then play
+  videoEl.load();
+  videoEl.addEventListener('loadedmetadata', () => {
+    // Muted autoplay is allowed on mobile; unmuted is blocked
+    videoEl.muted = true;
+    videoEl.play().catch(() => {
+      // Autoplay blocked — that's fine, user can tap play manually
+    });
+  }, { once: true });
+}
 
   setStrategy('');
   clearStats();
@@ -348,15 +423,22 @@ async function startConvert() {
   document.getElementById('outputFilenameExt').textContent = '.' + outputFormat.value;
   actions.innerHTML = '';
   setStatus('uploading', 0);
-  // Warn user not to refresh during upload phase only
-  window._uploadInProgress = true;
-  window.onbeforeunload = () => 'Your file is still uploading. Refreshing will cancel it.';
 
   const customName = document.getElementById('outputFilename').value.trim() || file.name.replace(/\.[^/.]+$/, '');
 
-  const formData = new FormData();
-  formData.append('file', file);
-  formData.append('output_format', outputFormat.value);
+// Re-read the file as ArrayBuffer first — fixes Android content URI stale handle
+let uploadFile = file;
+try {
+  const buffer = await file.arrayBuffer();
+  uploadFile = new File([buffer], filename || file.name, { type: file.type || 'video/mp4' });
+} catch (e) {
+  // arrayBuffer() failed — use original file object and hope for the best
+  uploadFile = file;
+}
+
+const formData = new FormData();
+formData.append('file', uploadFile);
+formData.append('output_format', outputFormat.value);
   formData.append('resolution', document.getElementById('settingRes').value);
   formData.append('quality',    document.getElementById('settingQuality').value);
   formData.append('codec',      document.getElementById('settingCodec').value);
@@ -364,34 +446,59 @@ async function startConvert() {
   formData.append('captions', document.getElementById('settingCaptions').checked ? 'on' : 'off');
   formData.append('caption_style', document.getElementById('settingCaptionStyle').value);
 
-  const xhr = new XMLHttpRequest();
-  xhr.open('POST', '/upload/');
-  xhr.upload.onprogress = e => {
-    if (e.lengthComputable) setStatus('uploading', Math.round(e.loaded/e.total*100), `Uploading… ${Math.round(e.loaded/e.total*100)}%`);
-  };
-  xhr.onload = () => {
-    try {
-      const data = JSON.parse(xhr.responseText);
-      if (xhr.status === 401) {
-        showLoginPrompt();
-        panel.classList.remove('active');
-        dropZone.style.display = '';
-        return;
-      }
-      if (xhr.status !== 200 || data.error) { showError(data.error || 'Upload failed.'); return; }
-      currentJobId = data.job_id;
-      startTime = Date.now();
-      window._uploadInProgress = false;
-      window.onbeforeunload = null; // safe to refresh now — server has the file
-      saveSession(currentJobId, file.name, `${inputExt} → ${fmt}`);
-      elapsedTimer = setInterval(() => {
-        if (!isPaused) statElapsed.textContent = `Elapsed: ${fmtElapsed(Date.now() - startTime)}`;
-      }, 1000);
-      setStatus('converting', 0); showConvertingActions(); pollStatus();
-    } catch { showError('Server error.'); }
-  };
-  xhr.onerror = () => showError('Network error during upload.');
-  xhr.send(formData);
+const xhr = new XMLHttpRequest();
+xhr.open('POST', '/upload/');
+
+// Mobile: set explicit timeout (default is often 0=infinite but mobile OS kills it)
+xhr.timeout = 300000; // 5 minutes
+
+// Add CSRF token explicitly — some mobile browsers don't send cookies reliably
+const csrfToken = getCookie('csrftoken');
+if (csrfToken) xhr.setRequestHeader('X-CSRFToken', csrfToken);
+
+xhr.upload.onprogress = e => {
+  if (e.lengthComputable) {
+    const pct = Math.round(e.loaded / e.total * 100);
+    setStatus('uploading', pct, `Uploading… ${pct}%`);
+  }
+};
+
+xhr.onload = () => {
+  try {
+    const data = JSON.parse(xhr.responseText);
+    if (xhr.status === 401) {
+      showLoginPrompt();
+      panel.classList.remove('active');
+      dropZone.style.display = '';
+      return;
+    }
+    if (xhr.status !== 200 || data.error) {
+      showError(data.error || 'Upload failed.');
+      return;
+    }
+    currentJobId = data.job_id;
+    startTime = Date.now();
+    saveSession(currentJobId, file.name, `${inputExt} → ${fmt}`);
+    elapsedTimer = setInterval(() => {
+      if (!isPaused) statElapsed.textContent = `Elapsed: ${fmtElapsed(Date.now() - startTime)}`;
+    }, 1000);
+    setStatus('converting', 0);
+    showConvertingActions();
+    pollStatus();
+  } catch (e) {
+    showError('Server error: ' + (e.message || 'Unknown'));
+  }
+};
+
+xhr.ontimeout = () => showError('Upload timed out. Check your connection and try again.');
+xhr.onerror = () => {
+  // Provide a more specific error for mobile debugging
+  const online = navigator.onLine;
+  showError(online
+    ? 'Upload failed (server rejected). File may be too large or unsupported.'
+    : 'No internet connection detected. Please check your network.');
+};
+xhr.send(formData);
 }
 
 // ── STATUS HELPERS ──
@@ -774,16 +881,12 @@ function showThumbnail(filename, fileSize) {
 }
 
 function showError(msg) {
-  window._uploadInProgress = false;
-  window.onbeforeunload = null;
   setStatus('error', 0);
   errorBox.textContent = '⚠ ' + msg;
   errorBox.classList.add('active');
   actions.innerHTML = `<button class="btn btn-ghost" onclick="convertAnother()">↩ Try again</button>`;
 }
 function convertAnother() {
-  window._uploadInProgress = false;
-  window.onbeforeunload = null;
   closeExportModal();
   originalFileSize = 0;
   pendingFile = null;
@@ -1329,14 +1432,6 @@ function confirmLogout() {
   document.body.appendChild(modal);
 }
 
-function closeLogoutConfirm() {
-  const modal = document.getElementById('logoutConfirmModal');
-  if (modal) modal.remove();
-}
-
-function performLogout() {
-  window.location.href = '/logout/';
-}
 
 function closeLogoutConfirm() {
   const modal = document.getElementById('logoutConfirmModal');
