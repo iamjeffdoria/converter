@@ -1,395 +1,528 @@
-/* ── ExportReady Analytics Dashboard ── */
+/* analytics_dashboard.js — ExportReady Analytics */
+'use strict';
 
-const API_URL    = '/analytics/api/';
-const REFRESH_MS = 30_000;
+// ── CONFIG ────────────────────────────────────────────────────────────────────
+const REFRESH_INTERVAL = 15_000; // ms
+const API_URL          = '/analytics/api/';
 
-let trendChart   = null;
-let hourlyChart  = null;
-let allUsers     = [];
-let allFeedback  = [];
+// Chart.js color tokens (match CSS vars)
+const C = {
+  accent:  '#00d4ff',
+  green:   '#00e676',
+  red:     '#ff4d6a',
+  amber:   '#ffb700',
+  purple:  '#b47cff',
+  teal:    '#00bcd4',
+  grid:    'rgba(255,255,255,0.04)',
+  label:   '#5e7a96',
+  bg:      '#161e2b',
+};
+
+// ── STATE ─────────────────────────────────────────────────────────────────────
+let charts       = {};
 let refreshTimer = null;
+let lastData     = null;
 
-/* ═══════════════════════════════
-   INIT
-═══════════════════════════════ */
+// ── INIT ──────────────────────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
-  initNav();
-  initSearch();
-  initFeedbackSearch();
-  initHamburger();
-  fetchData();
-  refreshTimer = setInterval(fetchData, REFRESH_MS);
+  setupTabs();
+  setupChart_defaults();
+  fetchAndRender();
+  refreshTimer = setInterval(fetchAndRender, REFRESH_INTERVAL);
+  setupServerClock();
 });
 
-/* ═══════════════════════════════
-   HAMBURGER
-═══════════════════════════════ */
-function initHamburger() {
-  const btn     = document.getElementById('hamburgerBtn');
-  const sidebar = document.querySelector('.sidebar');
-  if (!btn || !sidebar) return;
-
-  const overlay = document.createElement('div');
-  overlay.className = 'sidebar-overlay';
-  document.body.appendChild(overlay);
-
-  function openMenu() {
-    sidebar.classList.add('open');
-    overlay.classList.add('open');
-    btn.classList.add('open');
-  }
-  function closeMenu() {
-    sidebar.classList.remove('open');
-    overlay.classList.remove('open');
-    btn.classList.remove('open');
-  }
-
-  btn.addEventListener('click', function(e) {
-    e.stopPropagation();
-    sidebar.classList.contains('open') ? closeMenu() : openMenu();
-  });
-
-  overlay.addEventListener('click', closeMenu);
-
-  document.querySelectorAll('.nav-item[data-section]').forEach(function(item) {
-    item.addEventListener('click', function() {
-      if (window.innerWidth <= 900) closeMenu();
-    });
-  });
-}
-
-/* ═══════════════════════════════
-   NAV
-═══════════════════════════════ */
-function initNav() {
-  document.querySelectorAll('.nav-item[data-section]').forEach(function(item) {
-    item.addEventListener('click', function(e) {
-      e.preventDefault();
-      var target = item.dataset.section;
-      switchSection(target);
-      document.querySelectorAll('.nav-item').forEach(function(n) {
-        n.classList.remove('active');
-      });
-      item.classList.add('active');
-    });
-  });
-}
-
-function switchSection(name) {
-  document.querySelectorAll('.section').forEach(function(s) {
-    s.classList.remove('active');
-  });
-  var sec = document.getElementById('section-' + name);
-  if (sec) sec.classList.add('active');
-  var titles = { overview: 'Overview', jobs: 'Jobs', users: 'Users', feedback: 'Feedback' };
-  document.getElementById('pageTitle').textContent = titles[name] || name;
-}
-
-/* ═══════════════════════════════
-   FETCH
-═══════════════════════════════ */
-async function fetchData() {
+// ── FETCH ─────────────────────────────────────────────────────────────────────
+async function fetchAndRender() {
   try {
-    var res  = await fetch(API_URL);
-    if (!res.ok) throw new Error(res.status);
-    var data = await res.json();
-    render(data);
-    setStatus(true);
+    const res  = await fetch(API_URL, { credentials: 'same-origin' });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+    lastData   = data;
+    renderAll(data);
+    hideLoader();
   } catch (err) {
-    setStatus(false);
-    console.error('Analytics fetch failed:', err);
+    console.error('[Analytics] fetch failed:', err);
   }
 }
 
-/* ═══════════════════════════════
-   STATUS
-═══════════════════════════════ */
-function setStatus(online) {
-  var dot  = document.getElementById('statusDot');
-  var text = document.getElementById('statusText');
-  dot.className    = 'status-dot ' + (online ? 'online' : 'offline');
-  text.textContent = online ? 'Server online' : 'Server offline';
-  var sync = document.getElementById('lastSync');
-  sync.textContent = online
-    ? 'Last sync: ' + new Date().toLocaleTimeString()
-    : 'Sync failed';
+// ── TABS ──────────────────────────────────────────────────────────────────────
+function setupTabs() {
+  const tabs   = document.querySelectorAll('.nav-tab');
+  const panels = document.querySelectorAll('.tab-panel');
+
+  tabs.forEach(tab => {
+    tab.addEventListener('click', () => {
+      tabs.forEach(t   => t.classList.remove('active'));
+      panels.forEach(p => p.classList.remove('active'));
+      tab.classList.add('active');
+      const target = document.getElementById('panel-' + tab.dataset.tab);
+      if (target) target.classList.add('active');
+    });
+  });
 }
 
-/* ═══════════════════════════════
-   RENDER
-═══════════════════════════════ */
-function render(d) {
+// ── CHART DEFAULTS ────────────────────────────────────────────────────────────
+function setupChart_defaults() {
+  Chart.defaults.color              = C.label;
+  Chart.defaults.font.family        = "'JetBrains Mono', monospace";
+  Chart.defaults.font.size          = 11;
+  Chart.defaults.plugins.legend.display = false;
+  Chart.defaults.plugins.tooltip.backgroundColor = '#1c2637';
+  Chart.defaults.plugins.tooltip.borderColor     = '#2a3d55';
+  Chart.defaults.plugins.tooltip.borderWidth     = 1;
+  Chart.defaults.plugins.tooltip.titleColor      = '#e8edf5';
+  Chart.defaults.plugins.tooltip.bodyColor       = '#5e7a96';
+  Chart.defaults.plugins.tooltip.padding         = 10;
+  Chart.defaults.plugins.tooltip.cornerRadius    = 6;
+}
+
+// ── RENDER ALL ────────────────────────────────────────────────────────────────
+function renderAll(d) {
   renderKPIs(d);
-  renderTrend(d);
-  renderHourly(d);
-  renderBars('outputFormats', d.outputFormats);
-  renderBars('inputFormats',  d.inputFormats);
-  renderBars('strategies',    d.strategies);
-  renderRetention(d);
-  renderJobs(d.recentJobs);
-  renderUsers(d.recentUsers);
-  allUsers    = d.recentUsers || [];
-  allFeedback = d.feedback    || [];
-  renderFeedback(allFeedback);
-  
+  renderTrendChart(d);
+  renderHourlyChart(d);
+  renderHeatmap(d);
+  renderFormatBars(d);
+  renderStrategyRing(d);
+  renderRecentJobs(d);
+  renderVisitorKPIs(d);
+  renderUserKPIs(d);
+  renderUserTable(d);
+  renderFeedback(d);
+  renderOnboarding(d);
 }
 
-/* ── KPIs ── */
+// ── KPIs ──────────────────────────────────────────────────────────────────────
 function renderKPIs(d) {
-  setText('kpiTotal',      fmt(d.totalJobs));
-  setText('kpiActive',     fmt(d.activeJobs) + ' active');
-  setText('kpiDone',       fmt(d.totalDone));
-  setText('kpiRate',       d.successRate + '% success');
-  setText('kpiErrors',     fmt(d.totalErrors));
-  setText('kpiCancelled',  fmt(d.totalCancelled) + ' cancelled');
-  setText('kpiData',       d.dataHuman || '0 B');
-  setText('kpiUsers',      fmt(d.totalUsers));
-  setText('kpiNewUsers',   '+' + fmt(d.newUsers7d) + ' this week');
-  setText('kpiPaid',       fmt(d.paidUsers));
-  setText('kpiNewUsers30', '+' + fmt(d.newUsers30d) + ' this month');
-  setText('uTotal', fmt(d.totalUsers));
-  setText('uNew7',  fmt(d.newUsers7d));
-  setText('uNew30', fmt(d.newUsers30d));
-  setText('uPaid',  fmt(d.paidUsers));
+  setText('kpi-total',     fmt(d.totalJobs));
+  setText('kpi-done',      fmt(d.totalDone));
+  setText('kpi-errors',    fmt(d.totalErrors));
+  setText('kpi-cancelled', fmt(d.totalCancelled));
+  setText('kpi-active',    fmt(d.activeJobs));
+  setText('kpi-success',   d.successRate + '%');
+  setText('kpi-data',      d.dataHuman);
+  setText('kpi-queue',     d.activeJobs + ' / ' + d.maxConcurrent);
 }
 
-/* ── TREND CHART ── */
-function renderTrend(d) {
-  var ctx = document.getElementById('trendChart').getContext('2d');
-  if (trendChart) { trendChart.destroy(); }
-  trendChart = new Chart(ctx, {
-    type: 'bar',
-    data: {
-      labels: d.trendLabels,
-      datasets: [{
-        label: 'Conversions',
-        data: d.trendConvs,
-        backgroundColor: 'rgba(102,0,255,0.15)',
-        borderColor: '#6600ff',
-        borderWidth: 2,
-        borderRadius: 4,
-        hoverBackgroundColor: 'rgba(102,0,255,0.3)'
-      }]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: {
-        legend: { display: false },
-        tooltip: { callbacks: { label: function(ctx) { return ' ' + ctx.parsed.y + ' conversions'; } } }
-      },
-      scales: {
-        x: { grid: { display: false }, ticks: { font: { size: 11 }, color: '#6b7280' } },
-        y: { beginAtZero: true, grid: { color: '#f3f4f6' }, ticks: { stepSize: 1, font: { size: 11 }, color: '#6b7280' } }
-      }
-    }
-  });
-}
+// ── TREND LINE ────────────────────────────────────────────────────────────────
+function renderTrendChart(d) {
+  const ctx = getCtx('chart-trend');
+  if (!ctx) return;
 
-/* ── HOURLY CHART ── */
-function renderHourly(d) {
-  var ctx = document.getElementById('hourlyChart').getContext('2d');
-  if (hourlyChart) { hourlyChart.destroy(); }
-  var labels = Array.from({length: 24}, function(_, i) {
-    if (i === 0)  return '12a';
-    if (i === 12) return '12p';
-    return i < 12 ? i + 'a' : (i - 12) + 'p';
-  });
-  hourlyChart = new Chart(ctx, {
+  const gradient = ctx.createLinearGradient(0, 0, 0, 220);
+  gradient.addColorStop(0,   'rgba(0,212,255,0.25)');
+  gradient.addColorStop(1,   'rgba(0,212,255,0.00)');
+
+  const config = {
     type: 'line',
     data: {
-      labels: labels,
+      labels:   d.trendLabels,
       datasets: [{
-        label: 'Jobs',
-        data: d.hourly,
-        fill: true,
-        backgroundColor: 'rgba(59,130,246,0.08)',
-        borderColor: '#3b82f6',
-        borderWidth: 2,
-        pointRadius: 3,
-        pointBackgroundColor: '#3b82f6',
-        tension: 0.4
+        data:            d.trendConvs,
+        borderColor:     C.accent,
+        backgroundColor: gradient,
+        borderWidth:     2,
+        pointRadius:     3,
+        pointHoverRadius:5,
+        pointBackgroundColor: C.accent,
+        tension:         0.4,
+        fill:            true,
       }]
     },
     options: {
-      responsive: true,
+      responsive:          true,
       maintainAspectRatio: false,
-      plugins: { legend: { display: false } },
+      interaction:         { mode: 'index', intersect: false },
       scales: {
-        x: { grid: { display: false }, ticks: { font: { size: 10 }, color: '#6b7280', maxTicksLimit: 8 } },
-        y: { beginAtZero: true, grid: { color: '#f3f4f6' }, ticks: { stepSize: 1, font: { size: 10 }, color: '#6b7280' } }
-      }
+        x: { grid: { color: C.grid }, ticks: { maxTicksLimit: 7 } },
+        y: { grid: { color: C.grid }, beginAtZero: true, ticks: { stepSize: 1 } },
+      },
     }
-  });
-}
-
-/* ── BAR LISTS ── */
-function renderBars(containerId, items) {
-  var el = document.getElementById(containerId);
-  if (!el || !items || !items.length) {
-    if (el) el.innerHTML = '<div style="padding:14px 18px;color:#9ca3af;font-size:12px">No data yet</div>';
-    return;
-  }
-  var max = Math.max.apply(null, items.map(function(i) { return i.val; }).concat([1]));
-  el.innerHTML = items.map(function(item) {
-    return '<div class="bar-item">'
-      + '<div class="bar-item-top">'
-      + '<span class="bar-item-name">' + esc(item.name) + '</span>'
-      + '<span class="bar-item-val">'  + item.val       + '</span>'
-      + '</div>'
-      + '<div class="bar-track"><div class="bar-fill" style="width:' + Math.round((item.val / max) * 100) + '%"></div></div>'
-      + '</div>';
-  }).join('');
-}
-
-/* ── RETENTION ── */
-function renderRetention(d) {
-  var el = document.getElementById('retentionStats');
-  if (!el) return;
-  el.innerHTML =
-    '<div class="retention-row"><span class="retention-label">Total Visitors</span><span class="retention-val">'          + fmt(d.totalVisitors)    + '</span></div>' +
-    '<div class="retention-row"><span class="retention-label">Returning</span><span class="retention-badge badge-green">'  + fmt(d.returningVisitors) + '</span></div>' +
-    '<div class="retention-row"><span class="retention-label">New</span><span class="retention-badge badge-blue">'         + fmt(d.newVisitors)       + '</span></div>' +
-    '<div class="retention-row"><span class="retention-label">Retention Rate</span><span class="retention-badge badge-purple">' + d.retentionRate + '%</span></div>' +
-    '<div class="retention-row"><span class="retention-label">Active (30d)</span><span class="retention-val">'             + fmt(d.activeVisitors30d) + '</span></div>';
-}
-
-/* ── JOBS TABLE ── */
-function renderJobs(jobs) {
-  var tbody = document.getElementById('jobsBody');
-  var count = document.getElementById('jobCount');
-  if (!tbody) return;
-  if (!jobs || !jobs.length) {
-    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:#9ca3af;padding:32px">No jobs yet</td></tr>';
-    return;
-  }
-  if (count) count.textContent = jobs.length + ' recent';
-  tbody.innerHTML = jobs.map(function(j) {
-    return '<tr>'
-      + '<td><div class="cell-filename" title="' + esc(j.name) + '">' + esc(j.name) + '</div></td>'
-      + '<td><span class="fmt-badge">' + esc(j.inFmt) + '</span><span style="margin:0 4px;color:#d1d5db">&rarr;</span><span class="fmt-badge">' + esc(j.outFmt) + '</span></td>'
-      + '<td style="white-space:nowrap">' + esc(j.size) + '</td>'
-      + '<td style="font-size:11px;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="' + esc(j.strategy) + '">' + (esc(j.strategy) || '&mdash;') + '</td>'
-      + '<td><span class="status-badge status-' + j.status + '">' + statusDot(j.status) + ' ' + esc(j.status) + '</span></td>'
-      + '<td style="white-space:nowrap;color:#9ca3af;font-size:12px">' + esc(j.when) + '</td>'
-      + '</tr>';
-  }).join('');
-}
-
-/* ── USERS TABLE ── */
-function renderUsers(users) {
-  var tbody = document.getElementById('usersBody');
-  if (!tbody) return;
-  if (!users || !users.length) {
-    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:#9ca3af;padding:32px">No users yet</td></tr>';
-    return;
-  }
-  tbody.innerHTML = users.map(function(u) {
-    return '<tr>'
-      + '<td style="font-weight:600;color:#111827">' + esc(u.username) + '</td>'
-      + '<td style="color:#6b7280;font-size:12px">'  + (esc(u.email) || '&mdash;') + '</td>'
-      + '<td><span class="plan-badge ' + (u.isPaid ? 'plan-paid' : 'plan-free') + '">' + (u.isPaid ? 'Paid' : 'Free') + '</span></td>'
-      + '<td style="font-weight:600">' + fmt(u.credits)  + '</td>'
-      + '<td>'                         + fmt(u.freeUsed) + '</td>'
-      + '<td style="font-weight:600">' + fmt(u.jobs)     + '</td>'
-      + '<td style="color:#9ca3af;font-size:12px;white-space:nowrap">' + esc(u.joined) + '</td>'
-      + '</tr>';
-  }).join('');
-}
-
-/* ═══════════════════════════════
-   SEARCH
-═══════════════════════════════ */
-function initSearch() {
-  var input = document.getElementById('userSearch');
-  if (!input) return;
-  input.addEventListener('input', function() {
-    var q = input.value.toLowerCase().trim();
-    if (!q) { renderUsers(allUsers); return; }
-    renderUsers(allUsers.filter(function(u) {
-      return u.username.toLowerCase().includes(q) || (u.email || '').toLowerCase().includes(q);
-    }));
-  });
-}
-
-/* ═══════════════════════════════
-   FEEDBACK
-═══════════════════════════════ */
-function renderFeedback(items) {
-  var tbody = document.getElementById('feedbackBody');
-  if (!tbody) return;
-
-  setText('fbTotal',   fmt(items.length));
-  setText('fbBugs',    fmt(items.filter(function(f) { return f.category === 'bug'; }).length));
-  setText('fbSpeed',   fmt(items.filter(function(f) { return f.category === 'speed'; }).length));
-  setText('fbQuality', fmt(items.filter(function(f) { return f.category === 'export-quality'; }).length));
-  setText('fbOther',   fmt(items.filter(function(f) { return !['bug','speed','export-quality'].includes(f.category); }).length));
-
-  if (!items.length) {
-    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:#9ca3af;padding:32px">No feedback yet</td></tr>';
-    return;
-  }
-
-  var categoryLabels = {
-    'export-quality': 'Export quality',
-    'speed':          'Speed',
-    'ai-chat':        'Export AI',
-    'ui':             'UI',
-    'bug':            'Bug',
-    'other':          'Other'
   };
 
-  tbody.innerHTML = items.map(function(f) {
-    var userCell = f.username
-      ? '<span>' + esc(f.username) + '</span>'
-      : '<span style="color:#9ca3af;font-style:italic">Anonymous</span>';
-    return '<tr>'
-      + '<td style="font-weight:600;color:#111827;white-space:nowrap">' + userCell + '</td>'
-      + '<td><span class="cat-badge cat-' + esc(f.category) + '">' + esc(categoryLabels[f.category] || f.category) + '</span></td>'
-      + '<td><div class="feedback-msg" title="' + esc(f.message) + '">' + esc(f.message) + '</div></td>'
-      + '<td style="font-size:11px;color:#9ca3af;white-space:nowrap">' + (esc(f.ip) || '&mdash;') + '</td>'
-      + '<td style="font-size:12px;color:#9ca3af;white-space:nowrap">' + esc(f.when) + '</td>'
-      + '</tr>';
-  }).join('');
+  if (charts['trend']) {
+    charts['trend'].data.labels   = d.trendLabels;
+    charts['trend'].data.datasets[0].data = d.trendConvs;
+    charts['trend'].update('none');
+  } else {
+    charts['trend'] = new Chart(ctx, config);
+  }
 }
 
-function initFeedbackSearch() {
-  var input = document.getElementById('feedbackSearch');
-  if (!input) return;
-  input.addEventListener('input', function() {
-    var q = input.value.toLowerCase().trim();
-    if (!q) { renderFeedback(allFeedback); return; }
-    renderFeedback(allFeedback.filter(function(f) {
-      return (f.message  || '').toLowerCase().includes(q)
-          || (f.username || '').toLowerCase().includes(q)
-          || (f.category || '').toLowerCase().includes(q);
-    }));
+// ── HOURLY BAR ────────────────────────────────────────────────────────────────
+function renderHourlyChart(d) {
+  const ctx = getCtx('chart-hourly');
+  if (!ctx) return;
+
+  const labels = Array.from({ length: 24 }, (_, i) =>
+    i === 0 ? '12am' : i < 12 ? i + 'am' : i === 12 ? '12pm' : (i - 12) + 'pm'
+  );
+
+  const config = {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [{
+        data:            d.hourly,
+        backgroundColor: d.hourly.map(v => v === Math.max(...d.hourly) ? C.accent : 'rgba(0,212,255,0.2)'),
+        borderRadius:    3,
+        borderSkipped:   false,
+      }]
+    },
+    options: {
+      responsive:          true,
+      maintainAspectRatio: false,
+      scales: {
+        x: { grid: { display: false }, ticks: { maxTicksLimit: 12 } },
+        y: { grid: { color: C.grid }, beginAtZero: true },
+      },
+    }
+  };
+
+  if (charts['hourly']) {
+    charts['hourly'].data.datasets[0].data            = d.hourly;
+    charts['hourly'].data.datasets[0].backgroundColor = d.hourly.map(v => v === Math.max(...d.hourly) ? C.accent : 'rgba(0,212,255,0.2)');
+    charts['hourly'].update('none');
+  } else {
+    charts['hourly'] = new Chart(ctx, config);
+  }
+}
+
+// ── HEATMAP ───────────────────────────────────────────────────────────────────
+function renderHeatmap(d) {
+  const wrap = document.getElementById('heatmap-grid');
+  if (!wrap) return;
+
+  const days  = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+  const grid  = d.heatmapGrid; // 7×24
+
+  const maxVal = Math.max(...grid.flat(), 1);
+
+  let html = '';
+  grid.forEach((row, di) => {
+    html += `<div class="heatmap-row">
+      <span class="heatmap-day-label">${days[di]}</span>`;
+    row.forEach((val, hi) => {
+      const intensity = Math.round((val / maxVal) * 5);
+      const tip = `${days[di]} ${hi}:00 — ${val} jobs`;
+      html += `<div class="heatmap-cell heat-${intensity}" data-tip="${tip}"></div>`;
+    });
+    html += '</div>';
+  });
+
+  // Hour labels row
+  html += '<div class="heatmap-hours">';
+  html += '<div></div>';
+  for (let h = 0; h < 24; h++) {
+    html += `<div class="heatmap-hour-label">${h % 6 === 0 ? h : ''}</div>`;
+  }
+  html += '</div>';
+
+  wrap.innerHTML = html;
+}
+
+// ── FORMAT SPARK BARS ─────────────────────────────────────────────────────────
+function renderFormatBars(d) {
+  renderSparkList('spark-input',  d.inputFormats);
+  renderSparkList('spark-output', d.outputFormats);
+  renderStrategyBars(d);
+}
+
+function renderSparkList(id, items) {
+  const el = document.getElementById(id);
+  if (!el || !items.length) return;
+
+  const max = Math.max(...items.map(i => i.val), 1);
+  el.innerHTML = items.map(item => `
+    <div class="spark-item">
+      <span class="spark-label">${item.name}</span>
+      <div class="spark-track">
+        <div class="spark-fill" style="width:${Math.round(item.val / max * 100)}%"></div>
+      </div>
+      <span class="spark-val">${item.val}</span>
+    </div>
+  `).join('');
+}
+
+function renderStrategyBars(d) {
+  const el = document.getElementById('spark-strategy');
+  if (!el || !d.strategies.length) return;
+
+  const colors = [C.green, C.accent, C.amber, C.purple];
+  const max    = Math.max(...d.strategies.map(i => i.val), 1);
+  el.innerHTML = d.strategies.map((item, i) => `
+    <div class="spark-item">
+      <span class="spark-label">${item.name}</span>
+      <div class="spark-track">
+        <div class="spark-fill" style="width:${Math.round(item.val / max * 100)}%;background:${colors[i % colors.length]}"></div>
+      </div>
+      <span class="spark-val">${item.val}</span>
+    </div>
+  `).join('');
+}
+
+// ── STRATEGY DONUT ────────────────────────────────────────────────────────────
+function renderStrategyRing(d) {
+  const ctx = getCtx('chart-strategy');
+  if (!ctx || !d.strategies.length) return;
+
+  const labels = d.strategies.map(s => s.name);
+  const values = d.strategies.map(s => s.val);
+  const colors = [C.green, C.accent, C.amber, C.purple];
+
+  // Legend
+  const legEl = document.getElementById('strategy-legend');
+  if (legEl) {
+    legEl.innerHTML = d.strategies.map((s, i) => `
+      <div class="ring-legend-item">
+        <div class="ring-legend-dot" style="background:${colors[i % colors.length]}"></div>
+        <span class="ring-legend-label">${s.name}</span>
+        <span class="ring-legend-val">${s.val}</span>
+      </div>
+    `).join('');
+  }
+
+  const config = {
+    type: 'doughnut',
+    data: {
+      labels,
+      datasets: [{
+        data:            values,
+        backgroundColor: colors,
+        borderWidth:     0,
+        hoverOffset:     4,
+      }]
+    },
+    options: {
+      responsive:          true,
+      maintainAspectRatio: true,
+      cutout:              '72%',
+      plugins: {
+        legend: { display: false },
+        tooltip: { callbacks: { label: ctx => ` ${ctx.label}: ${ctx.parsed}` } },
+      }
+    }
+  };
+
+  if (charts['strategy']) {
+    charts['strategy'].data.datasets[0].data = values;
+    charts['strategy'].update('none');
+  } else {
+    charts['strategy'] = new Chart(ctx, config);
+  }
+}
+
+// ── RECENT JOBS TABLE ─────────────────────────────────────────────────────────
+function renderRecentJobs(d) {
+  const tbody = document.getElementById('jobs-tbody');
+  if (!tbody) return;
+
+  if (!d.recentJobs.length) {
+    tbody.innerHTML = '<tr><td colspan="7" class="empty-state">No jobs yet</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = d.recentJobs.map(j => `
+    <tr>
+      <td>
+        <div style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${j.name}">${j.name}</div>
+      </td>
+      <td class="td-muted">${j.inFmt.toUpperCase()}</td>
+      <td><span style="color:var(--accent)">${j.outFmt.toUpperCase()}</span></td>
+      <td class="td-muted">${j.size}</td>
+      <td>
+        <div class="progress-bar-wrap">
+          <div class="progress-bar-fill" style="width:${j.progress}%"></div>
+        </div>
+      </td>
+      <td>${statusChip(j.status)}</td>
+      <td class="td-muted">${j.when}</td>
+    </tr>
+  `).join('');
+}
+
+function statusChip(status) {
+  const map = {
+    done:       '<span class="chip chip-done">✓ done</span>',
+    error:      '<span class="chip chip-error">✗ error</span>',
+    cancelled:  '<span class="chip chip-cancel">✕ cancelled</span>',
+    converting: '<span class="chip chip-active">⟳ active</span>',
+    queued:     '<span class="chip chip-queued">⧖ queued</span>',
+    paused:     '<span class="chip chip-cancel">⏸ paused</span>',
+  };
+  return map[status] || `<span class="chip">${status}</span>`;
+}
+
+// ── VISITORS ──────────────────────────────────────────────────────────────────
+function renderVisitorKPIs(d) {
+  setText('vis-total',       fmt(d.totalVisitors));
+  setText('vis-new',         fmt(d.newVisitors));
+  setText('vis-returning',   fmt(d.returningVisitors));
+  setText('vis-retention',   d.retentionRate + '%');
+  setText('vis-active30',    fmt(d.activeVisitors30d));
+  // secondary panel
+  setText('vis-total-b',     fmt(d.totalVisitors));
+  setText('vis-returning-b', fmt(d.returningVisitors));
+  setText('vis-retention-b', d.retentionRate + '%');
+  setText('vis-active30-b',  fmt(d.activeVisitors30d));
+}
+
+// ── USERS ─────────────────────────────────────────────────────────────────────
+function renderUserKPIs(d) {
+  setText('u-total',   fmt(d.totalUsers));
+  setText('u-7d',      '+' + d.newUsers7d);
+  setText('u-30d',     '+' + d.newUsers30d);
+  setText('u-paid',    fmt(d.paidUsers));
+}
+
+function renderUserTable(d) {
+  const tbody = document.getElementById('users-tbody');
+  if (!tbody) return;
+
+  if (!d.recentUsers.length) {
+    tbody.innerHTML = '<tr><td colspan="6" class="empty-state">No users yet</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = d.recentUsers.map(u => `
+    <tr>
+      <td>
+        ${u.username}
+        ${u.isPaid ? '<span class="paid-tag">paid</span>' : ''}
+      </td>
+      <td class="td-muted">${u.email || '—'}</td>
+      <td class="td-muted">${u.joined}</td>
+      <td style="color:var(--amber)">${u.credits}</td>
+      <td class="td-muted">${u.freeUsed}</td>
+      <td style="color:var(--accent)">${u.jobs}</td>
+    </tr>
+  `).join('');
+}
+
+// ── FEEDBACK ──────────────────────────────────────────────────────────────────
+function renderFeedback(d) {
+  const el = document.getElementById('feedback-list');
+  if (!el) return;
+
+  if (!d.feedback.length) {
+    el.innerHTML = '<div class="empty-state">No feedback yet</div>';
+    return;
+  }
+
+  el.innerHTML = d.feedback.map(fb => `
+    <div class="feedback-card">
+      <div class="feedback-meta">
+        <span class="feedback-category">${fb.category}</span>
+        <span class="feedback-who">${fb.username ? '@' + fb.username : 'anonymous'}</span>
+        <span class="feedback-when">${fb.when}</span>
+      </div>
+      <div class="feedback-msg">${escHtml(fb.message)}</div>
+    </div>
+  `).join('');
+}
+
+// ── ONBOARDING ────────────────────────────────────────────────────────────────
+function renderOnboarding(d) {
+  // KPIs
+  setText('ob-completed', fmt(d.obCompleted));
+  setText('ob-skipped',   fmt(d.obSkipped));
+  setText('ob-inprog',    fmt(d.obInProgress));
+  setText('ob-never',     fmt(d.obNever));
+  // funnel count labels
+  setText('ob-completed-b', fmt(d.obCompleted));
+  setText('ob-skipped-b',   fmt(d.obSkipped));
+  setText('ob-inprog-b',    fmt(d.obInProgress));
+  setText('ob-never-b',     fmt(d.obNever));
+
+  // Funnel bars
+  const total = (d.obCompleted + d.obSkipped + d.obInProgress + d.obNever) || 1;
+  renderFunnelBar('fbar-completed', d.obCompleted, total, '#00e676');
+  renderFunnelBar('fbar-skipped',   d.obSkipped,   total, '#ffb700');
+  renderFunnelBar('fbar-inprog',    d.obInProgress,total, '#00d4ff');
+  renderFunnelBar('fbar-never',     d.obNever,     total, '#5e7a96');
+
+  // Onboarding records table
+  const tbody = document.getElementById('ob-tbody');
+  if (!tbody) return;
+  if (!d.obRecords.length) {
+    tbody.innerHTML = '<tr><td colspan="5" class="empty-state">No records yet</td></tr>';
+    return;
+  }
+  tbody.innerHTML = d.obRecords.map(r => `
+    <tr>
+      <td>${r.username}</td>
+      <td><span class="ob-step-pill">${r.step}</span></td>
+      <td>${r.completed
+        ? '<span class="chip chip-done">✓ done</span>'
+        : '<span class="chip chip-active">in progress</span>'}</td>
+      <td class="td-muted">${r.created_at}</td>
+      <td class="td-muted">${r.completed_at || '—'}</td>
+    </tr>
+  `).join('');
+}
+
+function renderFunnelBar(id, val, total, color) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  const pct = Math.round(val / total * 100);
+  el.style.width      = pct + '%';
+  el.style.background = color;
+  el.textContent      = pct + '%';
+}
+
+// ── SERVER CLOCK ──────────────────────────────────────────────────────────────
+function setupServerClock() {
+  const el = document.getElementById('server-time');
+  if (!el) return;
+  function tick() {
+    el.textContent = new Date().toLocaleTimeString('en-US', {
+      hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit'
+    });
+  }
+  tick();
+  setInterval(tick, 1000);
+}
+
+// ── MANUAL REFRESH ────────────────────────────────────────────────────────────
+function manualRefresh() {
+  const btn = document.getElementById('btn-refresh');
+  if (btn) btn.classList.add('refreshing');
+  fetchAndRender().finally(() => {
+    if (btn) btn.classList.remove('refreshing');
   });
 }
 
-/* ═══════════════════════════════
-   HELPERS
-═══════════════════════════════ */
+// ── LOADER ────────────────────────────────────────────────────────────────────
+function hideLoader() {
+  const el = document.getElementById('loading-overlay');
+  if (el) el.classList.add('hidden');
+  setTimeout(() => { if (el) el.remove(); }, 500);
+}
+
+// ── UTILS ─────────────────────────────────────────────────────────────────────
+function getCtx(id) {
+  const canvas = document.getElementById(id);
+  return canvas ? canvas.getContext('2d') : null;
+}
+
 function setText(id, val) {
-  var el = document.getElementById(id);
+  const el = document.getElementById(id);
   if (el) el.textContent = val;
 }
 
 function fmt(n) {
-  if (n === undefined || n === null) return '\u2014';
+  if (n === undefined || n === null) return '—';
   return Number(n).toLocaleString();
 }
 
-function esc(str) {
-  if (!str && str !== 0) return '';
+function escHtml(str) {
   return String(str)
-    .replace(/&/g,  '&amp;')
-    .replace(/</g,  '&lt;')
-    .replace(/>/g,  '&gt;')
-    .replace(/"/g,  '&quot;');
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
 }
 
-function statusDot(status) {
-  var dots = { done: '\u25CF', error: '\u25CF', cancelled: '\u25CB', converting: '\u25CF', queued: '\u25CB', paused: '\u25D0' };
-  return dots[status] || '\u25CB';
-}
+// Expose for inline onclick
+window.manualRefresh = manualRefresh;

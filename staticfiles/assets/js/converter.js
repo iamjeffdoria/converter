@@ -34,13 +34,18 @@ const SESSION_KEY = 'vc_active_job';
 
 // ── SESSION ──
 function saveSession(jobId, filename, fmt) {
-  sessionStorage.setItem(SESSION_KEY, JSON.stringify({ jobId, filename, fmt, ts: Date.now() }));
+  const data = JSON.stringify({ jobId, filename, fmt, ts: Date.now() });
+  sessionStorage.setItem(SESSION_KEY, data);
+  localStorage.setItem(SESSION_KEY, data); // persist across refreshes
 }
-function clearSession() { sessionStorage.removeItem(SESSION_KEY); }
+function clearSession() {
+  sessionStorage.removeItem(SESSION_KEY);
+  localStorage.removeItem(SESSION_KEY);
+}
 
 window.addEventListener('DOMContentLoaded', async () => {
   highlightSelectedFormat();
-  const raw = sessionStorage.getItem(SESSION_KEY);
+  const raw = localStorage.getItem(SESSION_KEY) || sessionStorage.getItem(SESSION_KEY);
   if (!raw) return;
   let saved;
   try { saved = JSON.parse(raw); } catch { clearSession(); return; }
@@ -49,9 +54,8 @@ window.addEventListener('DOMContentLoaded', async () => {
     const data = await fetch(`/active-job/${saved.jobId}/`).then(r => r.json());
     if (data.error) { clearSession(); return; }
     if (['converting','queued','paused'].includes(data.status)) {
-      reconnectFilename.textContent = saved.filename || data.input_name || saved.jobId;
-      reconnectBanner.classList.add('active');
-      reconnectBanner.addEventListener('click', () => reconnectToJob(saved, data));
+      // Auto-reconnect silently — no need to click the banner
+      reconnectToJob(saved, data);
     } else if (data.status === 'done') {
       reconnectToJob(saved, data);
     } else { clearSession(); }
@@ -344,6 +348,9 @@ async function startConvert() {
   document.getElementById('outputFilenameExt').textContent = '.' + outputFormat.value;
   actions.innerHTML = '';
   setStatus('uploading', 0);
+  // Warn user not to refresh during upload phase only
+  window._uploadInProgress = true;
+  window.onbeforeunload = () => 'Your file is still uploading. Refreshing will cancel it.';
 
   const customName = document.getElementById('outputFilename').value.trim() || file.name.replace(/\.[^/.]+$/, '');
 
@@ -372,7 +379,10 @@ async function startConvert() {
         return;
       }
       if (xhr.status !== 200 || data.error) { showError(data.error || 'Upload failed.'); return; }
-      currentJobId = data.job_id; startTime = Date.now();
+      currentJobId = data.job_id;
+      startTime = Date.now();
+      window._uploadInProgress = false;
+      window.onbeforeunload = null; // safe to refresh now — server has the file
       saveSession(currentJobId, file.name, `${inputExt} → ${fmt}`);
       elapsedTimer = setInterval(() => {
         if (!isPaused) statElapsed.textContent = `Elapsed: ${fmtElapsed(Date.now() - startTime)}`;
@@ -764,12 +774,16 @@ function showThumbnail(filename, fileSize) {
 }
 
 function showError(msg) {
+  window._uploadInProgress = false;
+  window.onbeforeunload = null;
   setStatus('error', 0);
   errorBox.textContent = '⚠ ' + msg;
   errorBox.classList.add('active');
   actions.innerHTML = `<button class="btn btn-ghost" onclick="convertAnother()">↩ Try again</button>`;
 }
 function convertAnother() {
+  window._uploadInProgress = false;
+  window.onbeforeunload = null;
   closeExportModal();
   originalFileSize = 0;
   pendingFile = null;

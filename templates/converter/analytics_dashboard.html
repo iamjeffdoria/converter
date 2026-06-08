@@ -2,332 +2,480 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Analytics — ExportReady</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="{% static 'assets/css/analytics_dashboard.css' %}">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Analytics — ExportReady</title>
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet" />
+
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
+
+  <!-- Dashboard CSS -->
+  <link rel="stylesheet" href="{% static 'assets/css/analytics_dashboard.css' %}" />
 </head>
 <body>
 
-<!-- SIDEBAR -->
-<aside class="sidebar">
-  <div class="sidebar-logo">
-    <span class="logo-mark">ER</span>
-    <span class="logo-text">ExportReady</span>
-  </div>
-  <nav class="sidebar-nav">
-    <div class="nav-label">Analytics</div>
-    <a href="#" class="nav-item active" data-section="overview">
-      <svg viewBox="0 0 20 20" fill="currentColor"><path d="M2 10a8 8 0 1116 0A8 8 0 012 10zm8-5a1 1 0 011 1v3.586l2.707 2.707a1 1 0 01-1.414 1.414l-3-3A1 1 0 019 10V6a1 1 0 011-1z"/></svg>
-      Overview
-    </a>
-    <a href="#" class="nav-item" data-section="jobs">
-      <svg viewBox="0 0 20 20" fill="currentColor"><path d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm3 2h6v4H7V5zm8 8v2h1v-2h-1zm-2-2H7v4h6v-4zm2 0h1V9h-1v2zm1-4V5h-1v2h1z"/></svg>
-      Jobs
-    </a>
-    <a href="#" class="nav-item" data-section="users">
-      <svg viewBox="0 0 20 20" fill="currentColor"><path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 16v1h-6.07zM6 11a5 5 0 015 5v1H1v-1a5 5 0 015-5z"/></svg>
-      Users
-    </a>
-    <a href="#" class="nav-item" data-section="feedback">
-      <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M18 10c0 3.866-3.582 7-8 7a8.841 8.841 0 01-4.083-.98L2 17l1.338-3.123C2.493 12.767 2 11.434 2 10c0-3.866 3.582-7 8-7s8 3.134 8 7zM7 9H5v2h2V9zm8 0h-2v2h2V9zM9 9h2v2H9V9z" clip-rule="evenodd"/></svg>
-      Feedback
-    </a>
-  <div class="nav-label" style="margin-top:16px">Navigate</div>
-  <a href="/convert/" class="nav-item">
-    <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm.707-10.293a1 1 0 00-1.414-1.414l-3 3a1 1 0 000 1.414l3 3a1 1 0 001.414-1.414L9.414 11H13a1 1 0 100-2H9.414l1.293-1.293z" clip-rule="evenodd"/></svg>
-    Converter
-  </a>
+<!-- ── LOADING OVERLAY ─────────────────────────────────────────────────────── -->
+<div class="loading-overlay" id="loading-overlay">
+  <div class="loader-logo">ExportReady</div>
+  <div class="loader-bar"><div class="loader-fill"></div></div>
+  <div class="loader-text">Loading analytics…</div>
+</div>
 
-  <div class="nav-label" style="margin-top:16px">Onboarding</div>
-  <a href="#" class="nav-item" data-section="onboarding">
-    <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-3a1 1 0 00-.867.5 1 1 0 11-1.731-1A3 3 0 0113 8a3.001 3.001 0 01-2 2.83V11a1 1 0 11-2 0v-1a1 1 0 011-1 1 1 0 100-2zm0 8a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd"/></svg>
-    Onboarding Stats
-  </a>
-  </nav>
-  <div class="sidebar-footer">
-    <div class="server-status">
-      <span class="status-dot" id="statusDot"></span>
-      <span id="statusText">Checking…</span>
-    </div>
-    <a href="/analytics/logout/" class="sign-out-btn">Sign out</a>
-  </div>
-</aside>
+<!-- ── DASHBOARD ──────────────────────────────────────────────────────────── -->
+<div class="dash-wrap">
 
-<!-- MAIN -->
-<main class="main">
+  <!-- TOPBAR -->
+  <header class="topbar">
+    <a href="/" class="topbar-brand">
+      <div class="brand-icon">ER</div>
+      ExportReady
+      <span style="font-family:var(--mono);font-size:0.62rem;color:var(--text-dim);font-weight:400;letter-spacing:0.04em;margin-left:4px">/ analytics</span>
+    </a>
 
-  <!-- TOP BAR -->
-<header class="topbar">
-    <div class="topbar-left">
-      <button class="hamburger" id="hamburgerBtn" aria-label="Toggle menu">
-        <span></span><span></span><span></span>
-      </button>
-      <h1 class="page-title" id="pageTitle">Overview</h1>
-      <span class="last-sync" id="lastSync">Syncing…</span>
-    </div>
-    <div class="topbar-right">
-      <div class="refresh-badge" id="refreshBadge">
-        <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z" clip-rule="evenodd"/></svg>
-        Auto-refresh 30s
+    <div class="topbar-meta">
+      <div class="live-badge">
+        <div class="live-dot"></div>
+        LIVE
       </div>
+      <div class="server-time" id="server-time">00:00:00</div>
+    </div>
+
+    <div class="topbar-actions">
+      <button class="btn-ghost" id="btn-refresh" onclick="manualRefresh()" title="Refresh data">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M23 4v6h-6"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
+        </svg>
+        Refresh
+      </button>
+      <a href="/analytics/logout/" class="btn-ghost">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/>
+        </svg>
+        Logout
+      </a>
     </div>
   </header>
 
-  <!-- ═══════════════════════════════════
-       SECTION: OVERVIEW
-  ══════════════════════════════════════ -->
-  <section class="section active" id="section-overview">
+  <!-- NAV TABS -->
+  <nav class="nav-tabs" role="tablist">
+    <div class="nav-tab active" data-tab="overview"   role="tab">Overview</div>
+    <div class="nav-tab"        data-tab="jobs"        role="tab">Jobs</div>
+    <div class="nav-tab"        data-tab="visitors"    role="tab">Visitors</div>
+    <div class="nav-tab"        data-tab="users"       role="tab">Users</div>
+    <div class="nav-tab"        data-tab="feedback"    role="tab">Feedback</div>
+    <div class="nav-tab"        data-tab="onboarding"  role="tab">Onboarding</div>
+  </nav>
 
-    <!-- KPI ROW -->
-    <div class="kpi-grid">
-      <div class="kpi-card">
-        <div class="kpi-label">Total Jobs</div>
-        <div class="kpi-value" id="kpiTotal">—</div>
-        <div class="kpi-sub" id="kpiActive">— active</div>
-      </div>
-      <div class="kpi-card kpi-green">
-        <div class="kpi-label">Completed</div>
-        <div class="kpi-value" id="kpiDone">—</div>
-        <div class="kpi-sub" id="kpiRate">—% success</div>
-      </div>
-      <div class="kpi-card kpi-red">
-        <div class="kpi-label">Errors</div>
-        <div class="kpi-value" id="kpiErrors">—</div>
-        <div class="kpi-sub" id="kpiCancelled">— cancelled</div>
-      </div>
-      <div class="kpi-card kpi-blue">
-        <div class="kpi-label">Data Processed</div>
-        <div class="kpi-value" id="kpiData">—</div>
-        <div class="kpi-sub">total output</div>
-      </div>
-      <div class="kpi-card">
-        <div class="kpi-label">Total Users</div>
-        <div class="kpi-value" id="kpiUsers">—</div>
-        <div class="kpi-sub" id="kpiNewUsers">— this week</div>
-      </div>
-      <div class="kpi-card kpi-purple">
-        <div class="kpi-label">Paid Users</div>
-        <div class="kpi-value" id="kpiPaid">—</div>
-        <div class="kpi-sub" id="kpiNewUsers30">— this month</div>
-      </div>
-    </div>
+  <!-- MAIN -->
+  <main class="dash-main">
 
-    <!-- CHARTS ROW -->
-    <div class="charts-row">
-      <div class="card chart-card large">
-        <div class="card-header">
-          <div class="card-title">Conversions — Last 14 Days</div>
+    <!-- ════════════════════════════════════════════════════════════════════
+         TAB: OVERVIEW
+    ════════════════════════════════════════════════════════════════════ -->
+    <section class="tab-panel active" id="panel-overview">
+
+      <!-- KPI Row 1 -->
+      <div class="kpi-grid">
+        <div class="kpi-card accent">
+          <div class="kpi-icon">⚡</div>
+          <div class="kpi-label">Total Jobs</div>
+          <div class="kpi-value" id="kpi-total">—</div>
+          <div class="kpi-meta">all time</div>
         </div>
-        <div class="chart-area">
-          <canvas id="trendChart"></canvas>
+        <div class="kpi-card green">
+          <div class="kpi-icon">✓</div>
+          <div class="kpi-label">Completed</div>
+          <div class="kpi-value" id="kpi-done">—</div>
+          <div class="kpi-meta">successfully done</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-icon">📊</div>
+          <div class="kpi-label">Success Rate</div>
+          <div class="kpi-value" id="kpi-success">—</div>
+          <div class="kpi-meta">of all jobs</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-icon">💾</div>
+          <div class="kpi-label">Data Exported</div>
+          <div class="kpi-value" id="kpi-data">—</div>
+          <div class="kpi-meta">total output size</div>
+        </div>
+        <div class="kpi-card red">
+          <div class="kpi-icon">✗</div>
+          <div class="kpi-label">Errors</div>
+          <div class="kpi-value" id="kpi-errors">—</div>
+          <div class="kpi-meta">failed jobs</div>
+        </div>
+        <div class="kpi-card amber">
+          <div class="kpi-icon">✕</div>
+          <div class="kpi-label">Cancelled</div>
+          <div class="kpi-value" id="kpi-cancelled">—</div>
+          <div class="kpi-meta">user cancelled</div>
+        </div>
+        <div class="kpi-card purple">
+          <div class="kpi-icon">⟳</div>
+          <div class="kpi-label">Active Now</div>
+          <div class="kpi-value" id="kpi-active">—</div>
+          <div class="kpi-meta">converting or queued</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-icon">🖥</div>
+          <div class="kpi-label">Queue Load</div>
+          <div class="kpi-value" id="kpi-queue" style="font-size:1.4rem">—</div>
+          <div class="kpi-meta">active / max slots</div>
         </div>
       </div>
-      <div class="card chart-card">
-        <div class="card-header">
-          <div class="card-title">By Hour (Today)</div>
+
+      <!-- Trend + Strategy -->
+      <div class="chart-grid">
+        <div class="panel">
+          <div class="panel-head">
+            <span class="panel-title">Conversions — last 14 days</span>
+          </div>
+          <div class="panel-body">
+            <div class="chart-wrap" style="height:220px">
+              <canvas id="chart-trend"></canvas>
+            </div>
+          </div>
         </div>
-        <div class="chart-area">
-          <canvas id="hourlyChart"></canvas>
+
+        <div class="panel">
+          <div class="panel-head">
+            <span class="panel-title">Strategy Breakdown</span>
+          </div>
+          <div class="panel-body">
+            <div class="ring-wrap">
+              <canvas id="chart-strategy" style="max-height:160px;max-width:160px"></canvas>
+              <div class="ring-legend" id="strategy-legend"></div>
+            </div>
+          </div>
         </div>
       </div>
-    </div>
 
-    <!-- BREAKDOWN ROW -->
-    <div class="breakdown-row">
-      <div class="card">
-        <div class="card-header"><div class="card-title">Output Formats</div></div>
-        <div id="outputFormats" class="bar-list"></div>
-      </div>
-      <div class="card">
-        <div class="card-header"><div class="card-title">Input Formats</div></div>
-        <div id="inputFormats" class="bar-list"></div>
-      </div>
-      <div class="card">
-        <div class="card-header"><div class="card-title">Encode Strategy</div></div>
-        <div id="strategies" class="bar-list"></div>
-      </div>
-      <div class="card">
-        <div class="card-header"><div class="card-title">Visitor Retention</div></div>
-        <div class="retention-stats" id="retentionStats"></div>
-      </div>
-    </div>
+      <!-- Hourly + Heatmap -->
+      <div class="chart-grid">
+        <div class="panel">
+          <div class="panel-head">
+            <span class="panel-title">Hourly Distribution — last 24h</span>
+          </div>
+          <div class="panel-body">
+            <div class="chart-wrap" style="height:180px">
+              <canvas id="chart-hourly"></canvas>
+            </div>
+          </div>
+        </div>
 
-  </section>
-
-  <!-- ═══════════════════════════════════
-       SECTION: JOBS
-  ══════════════════════════════════════ -->
-  <section class="section" id="section-jobs">
-    <div class="card table-card">
-      <div class="card-header">
-        <div class="card-title">Recent Jobs</div>
-        <div class="card-badge" id="jobCount">—</div>
+        <div class="panel">
+          <div class="panel-head">
+            <span class="panel-title">Weekly Activity Heatmap</span>
+            <span class="panel-badge">7 × 24h</span>
+          </div>
+          <div class="panel-body">
+            <div class="heatmap-wrap">
+              <div id="heatmap-grid" class="heatmap-grid"></div>
+            </div>
+          </div>
+        </div>
       </div>
-      <div class="table-wrap">
-        <table class="data-table" id="jobsTable">
+
+      <!-- Format breakdowns -->
+      <div class="chart-grid-3">
+        <div class="panel">
+          <div class="panel-head"><span class="panel-title">Input Formats</span></div>
+          <div class="panel-body">
+            <div class="spark-list" id="spark-input"></div>
+          </div>
+        </div>
+        <div class="panel">
+          <div class="panel-head"><span class="panel-title">Output Formats</span></div>
+          <div class="panel-body">
+            <div class="spark-list" id="spark-output"></div>
+          </div>
+        </div>
+        <div class="panel">
+          <div class="panel-head"><span class="panel-title">Strategies Used</span></div>
+          <div class="panel-body">
+            <div class="spark-list" id="spark-strategy"></div>
+          </div>
+        </div>
+      </div>
+
+    </section><!-- /panel-overview -->
+
+    <!-- ════════════════════════════════════════════════════════════════════
+         TAB: JOBS
+    ════════════════════════════════════════════════════════════════════ -->
+    <section class="tab-panel" id="panel-jobs">
+
+      <div class="section-head">
+        <div>
+          <div class="section-title">Recent Jobs</div>
+          <div class="section-sub">Last 20 jobs across all users</div>
+        </div>
+      </div>
+
+      <div class="panel" style="overflow:auto">
+        <table class="data-table">
           <thead>
             <tr>
-              <th>File</th>
-              <th>Format</th>
+              <th>Filename</th>
+              <th>In</th>
+              <th>Out</th>
               <th>Size</th>
-              <th>Strategy</th>
+              <th>Progress</th>
               <th>Status</th>
               <th>When</th>
             </tr>
           </thead>
-          <tbody id="jobsBody"></tbody>
+          <tbody id="jobs-tbody">
+            <tr><td colspan="7" class="empty-state">Loading…</td></tr>
+          </tbody>
         </table>
       </div>
-    </div>
-  </section>
 
-  <!-- ═══════════════════════════════════
-       SECTION: USERS
-  ══════════════════════════════════════ -->
-  <section class="section" id="section-users">
-    <div class="kpi-grid" style="margin-bottom:24px">
-      <div class="kpi-card">
-        <div class="kpi-label">Total Registered</div>
-        <div class="kpi-value" id="uTotal">—</div>
+    </section><!-- /panel-jobs -->
+
+    <!-- ════════════════════════════════════════════════════════════════════
+         TAB: VISITORS
+    ════════════════════════════════════════════════════════════════════ -->
+    <section class="tab-panel" id="panel-visitors">
+
+      <div class="kpi-grid" style="grid-template-columns:repeat(auto-fill,minmax(180px,1fr))">
+        <div class="kpi-card accent">
+          <div class="kpi-icon">👥</div>
+          <div class="kpi-label">Total Visitors</div>
+          <div class="kpi-value" id="vis-total">—</div>
+          <div class="kpi-meta">unique cookies</div>
+        </div>
+        <div class="kpi-card green">
+          <div class="kpi-icon">✨</div>
+          <div class="kpi-label">New Visitors</div>
+          <div class="kpi-value" id="vis-new">—</div>
+          <div class="kpi-meta">first-time</div>
+        </div>
+        <div class="kpi-card purple">
+          <div class="kpi-icon">🔄</div>
+          <div class="kpi-label">Returning</div>
+          <div class="kpi-value" id="vis-returning">—</div>
+          <div class="kpi-meta">visited more than once</div>
+        </div>
+        <div class="kpi-card amber">
+          <div class="kpi-icon">📈</div>
+          <div class="kpi-label">Retention Rate</div>
+          <div class="kpi-value" id="vis-retention">—</div>
+          <div class="kpi-meta">returning / total</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-icon">📅</div>
+          <div class="kpi-label">Active (30d)</div>
+          <div class="kpi-value" id="vis-active30">—</div>
+          <div class="kpi-meta">seen in last 30 days</div>
+        </div>
       </div>
-      <div class="kpi-card kpi-green">
-        <div class="kpi-label">New (7 days)</div>
-        <div class="kpi-value" id="uNew7">—</div>
+
+      <div class="panel">
+        <div class="panel-head">
+          <span class="panel-title">Visitor Metrics</span>
+        </div>
+        <div class="panel-body">
+          <div class="mini-stat-row">
+            <span class="mini-stat-label">Cookie-based unique visitors</span>
+            <span class="mini-stat-value" id="vis-total-b">—</span>
+          </div>
+          <div class="mini-stat-row">
+            <span class="mini-stat-label">Returning visitors (visit_count > 1)</span>
+            <span class="mini-stat-value" id="vis-returning-b">—</span>
+          </div>
+          <div class="mini-stat-row">
+            <span class="mini-stat-label">Retention rate</span>
+            <span class="mini-stat-value" id="vis-retention-b">—</span>
+          </div>
+          <div class="mini-stat-row">
+            <span class="mini-stat-label">Active in last 30 days</span>
+            <span class="mini-stat-value" id="vis-active30-b">—</span>
+          </div>
+        </div>
       </div>
-      <div class="kpi-card kpi-blue">
-        <div class="kpi-label">New (30 days)</div>
-        <div class="kpi-value" id="uNew30">—</div>
+
+    </section><!-- /panel-visitors -->
+
+    <!-- ════════════════════════════════════════════════════════════════════
+         TAB: USERS
+    ════════════════════════════════════════════════════════════════════ -->
+    <section class="tab-panel" id="panel-users">
+
+      <div class="kpi-grid" style="grid-template-columns:repeat(auto-fill,minmax(180px,1fr));margin-bottom:24px">
+        <div class="kpi-card accent">
+          <div class="kpi-icon">👤</div>
+          <div class="kpi-label">Registered Users</div>
+          <div class="kpi-value" id="u-total">—</div>
+          <div class="kpi-meta">all time</div>
+        </div>
+        <div class="kpi-card green">
+          <div class="kpi-icon">🆕</div>
+          <div class="kpi-label">New (7d)</div>
+          <div class="kpi-value" id="u-7d">—</div>
+          <div class="kpi-meta">signed up this week</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-icon">📆</div>
+          <div class="kpi-label">New (30d)</div>
+          <div class="kpi-value" id="u-30d">—</div>
+          <div class="kpi-meta">signed up this month</div>
+        </div>
+        <div class="kpi-card amber">
+          <div class="kpi-icon">💳</div>
+          <div class="kpi-label">Paid Users</div>
+          <div class="kpi-value" id="u-paid">—</div>
+          <div class="kpi-meta">have credits</div>
+        </div>
       </div>
-      <div class="kpi-card kpi-purple">
-        <div class="kpi-label">Paid Users</div>
-        <div class="kpi-value" id="uPaid">—</div>
-      </div>
-    </div>
-    <div class="card table-card">
-      <div class="card-header">
-        <div class="card-title">User List</div>
-        <input class="search-input" type="text" id="userSearch" placeholder="Search username or email…">
-      </div>
-      <div class="table-wrap">
-        <table class="data-table" id="usersTable">
+
+      <div class="panel" style="overflow:auto">
+        <div class="panel-head">
+          <span class="panel-title">Recent Accounts</span>
+          <span class="panel-badge">latest 20</span>
+        </div>
+        <table class="data-table">
           <thead>
             <tr>
               <th>Username</th>
               <th>Email</th>
-              <th>Plan</th>
+              <th>Joined</th>
               <th>Credits</th>
               <th>Free Used</th>
               <th>Jobs</th>
-              <th>Joined</th>
             </tr>
           </thead>
-          <tbody id="usersBody"></tbody>
+          <tbody id="users-tbody">
+            <tr><td colspan="6" class="empty-state">Loading…</td></tr>
+          </tbody>
         </table>
       </div>
-    </div>
-  </section>
 
-<!-- SECTION: FEEDBACK -->
-  <section class="section" id="section-feedback">
-    <div class="kpi-grid" style="margin-bottom:4px">
-      <div class="kpi-card">
-        <div class="kpi-label">Total Feedback</div>
-        <div class="kpi-value" id="fbTotal">—</div>
+    </section><!-- /panel-users -->
+
+    <!-- ════════════════════════════════════════════════════════════════════
+         TAB: FEEDBACK
+    ════════════════════════════════════════════════════════════════════ -->
+    <section class="tab-panel" id="panel-feedback">
+
+      <div class="section-head">
+        <div>
+          <div class="section-title">User Feedback</div>
+          <div class="section-sub">Latest 100 submissions</div>
+        </div>
       </div>
-      <div class="kpi-card kpi-red">
-        <div class="kpi-label">Bug Reports</div>
-        <div class="kpi-value" id="fbBugs">—</div>
+
+      <div class="feedback-list" id="feedback-list">
+        <div class="empty-state">Loading…</div>
       </div>
-      <div class="kpi-card kpi-blue">
-        <div class="kpi-label">Speed</div>
-        <div class="kpi-value" id="fbSpeed">—</div>
+
+    </section><!-- /panel-feedback -->
+
+    <!-- ════════════════════════════════════════════════════════════════════
+         TAB: ONBOARDING
+    ════════════════════════════════════════════════════════════════════ -->
+    <section class="tab-panel" id="panel-onboarding">
+
+      <div class="kpi-grid" style="grid-template-columns:repeat(auto-fill,minmax(180px,1fr));margin-bottom:24px">
+        <div class="kpi-card green">
+          <div class="kpi-icon">🎓</div>
+          <div class="kpi-label">Completed</div>
+          <div class="kpi-value" id="ob-completed">—</div>
+          <div class="kpi-meta">finished all steps</div>
+        </div>
+        <div class="kpi-card amber">
+          <div class="kpi-icon">⏭</div>
+          <div class="kpi-label">Skipped</div>
+          <div class="kpi-value" id="ob-skipped">—</div>
+          <div class="kpi-meta">dismissed early</div>
+        </div>
+        <div class="kpi-card accent">
+          <div class="kpi-icon">⟳</div>
+          <div class="kpi-label">In Progress</div>
+          <div class="kpi-value" id="ob-inprog">—</div>
+          <div class="kpi-meta">started, not done</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-icon">◦</div>
+          <div class="kpi-label">Never Started</div>
+          <div class="kpi-value" id="ob-never">—</div>
+          <div class="kpi-meta">step 0</div>
+        </div>
       </div>
-      <div class="kpi-card kpi-purple">
-        <div class="kpi-label">Export Quality</div>
-        <div class="kpi-value" id="fbQuality">—</div>
+
+      <!-- Funnel -->
+      <div class="panel" style="margin-bottom:20px">
+        <div class="panel-head"><span class="panel-title">Onboarding Funnel</span></div>
+        <div class="panel-body">
+          <div class="funnel-wrap">
+            <div class="funnel-step">
+              <span class="funnel-label">Completed</span>
+              <div class="funnel-track">
+                <div class="funnel-fill" id="fbar-completed" style="width:0%">0%</div>
+              </div>
+              <span class="funnel-count" id="ob-completed-b">—</span>
+            </div>
+            <div class="funnel-step">
+              <span class="funnel-label">Skipped</span>
+              <div class="funnel-track">
+                <div class="funnel-fill" id="fbar-skipped" style="width:0%">0%</div>
+              </div>
+              <span class="funnel-count" id="ob-skipped-b">—</span>
+            </div>
+            <div class="funnel-step">
+              <span class="funnel-label">In Progress</span>
+              <div class="funnel-track">
+                <div class="funnel-fill" id="fbar-inprog" style="width:0%">0%</div>
+              </div>
+              <span class="funnel-count" id="ob-inprog-b">—</span>
+            </div>
+            <div class="funnel-step">
+              <span class="funnel-label">Never</span>
+              <div class="funnel-track">
+                <div class="funnel-fill" id="fbar-never" style="width:0%">0%</div>
+              </div>
+              <span class="funnel-count" id="ob-never-b">—</span>
+            </div>
+          </div>
+        </div>
       </div>
-      <div class="kpi-card kpi-green">
-        <div class="kpi-label">UI / Other</div>
-        <div class="kpi-value" id="fbOther">—</div>
-      </div>
-    </div>
-    <div class="card table-card">
-      <div class="card-header">
-        <div class="card-title">Feedback Messages</div>
-        <input class="search-input" type="text" id="feedbackSearch" placeholder="Search message or user…">
-      </div>
-      <div class="table-wrap">
+
+      <!-- Onboarding records table -->
+      <div class="panel" style="overflow:auto">
+        <div class="panel-head">
+          <span class="panel-title">Onboarding Records</span>
+          <span class="panel-badge">latest 100</span>
+        </div>
         <table class="data-table">
           <thead>
             <tr>
               <th>User</th>
-              <th>Category</th>
-              <th>Message</th>
-              <th>IP</th>
-              <th>When</th>
-            </tr>
-          </thead>
-          <tbody id="feedbackBody"></tbody>
-        </table>
-      </div>
-    </div>
-  </section>
-
-<!-- ═══════════════════════════════════
-       SECTION: ONBOARDING
-  ══════════════════════════════════════ -->
-  <section class="section" id="section-onboarding">
-    <div class="kpi-grid" style="margin-bottom:4px">
-      <div class="kpi-card kpi-green">
-        <div class="kpi-label">Completed Tour</div>
-        <div class="kpi-value" id="obCompleted">—</div>
-        <div class="kpi-sub">finished all steps</div>
-      </div>
-      <div class="kpi-card kpi-red">
-        <div class="kpi-label">Skipped</div>
-        <div class="kpi-value" id="obSkipped">—</div>
-        <div class="kpi-sub">dismissed early</div>
-      </div>
-      <div class="kpi-card kpi-blue">
-        <div class="kpi-label">In Progress</div>
-        <div class="kpi-value" id="obInProgress">—</div>
-        <div class="kpi-sub">started but not done</div>
-      </div>
-      <div class="kpi-card">
-        <div class="kpi-label">Never Seen</div>
-        <div class="kpi-value" id="obNever">—</div>
-        <div class="kpi-sub">step 0, not completed</div>
-      </div>
-    </div>
-    <div class="card table-card">
-      <div class="card-header">
-        <div class="card-title">Onboarding Records</div>
-        <input class="search-input" type="text" id="onboardingSearch" placeholder="Search username…">
-      </div>
-      <div class="table-wrap">
-        <table class="data-table">
-          <thead>
-            <tr>
-              <th>Username</th>
               <th>Step</th>
               <th>Status</th>
               <th>Started</th>
               <th>Completed</th>
             </tr>
           </thead>
-          <tbody id="onboardingBody"></tbody>
+          <tbody id="ob-tbody">
+            <tr><td colspan="5" class="empty-state">Loading…</td></tr>
+          </tbody>
         </table>
       </div>
-    </div>
-  </section>
 
-</main>
+    </section><!-- /panel-onboarding -->
 
-<!-- Chart.js CDN -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+  </main><!-- /dash-main -->
+</div><!-- /dash-wrap -->
+
+<!-- Dashboard JS -->
 <script src="{% static 'assets/js/analytics_dashboard.js' %}"></script>
+
 </body>
 </html>
