@@ -14,8 +14,6 @@ const statSpeed        = document.getElementById('statSpeed');
 const statEta          = document.getElementById('statEta');
 const statElapsed      = document.getElementById('statElapsed');
 const outputFormat     = document.getElementById('outputFormat');
-const reconnectBanner  = document.getElementById('reconnectBanner');
-const reconnectFilename= document.getElementById('reconnectFilename');
 
 
 let currentJobId = null;
@@ -29,64 +27,13 @@ let userModifiedSettings = false;
 let chatHistory = [];
 
 const SUPPORTED   = new Set(['.mkv','.mp4','.avi','.mov','.webm','.flv','.wmv','.ts','.m4v','.3gp']);
-const SESSION_KEY = 'vc_active_job';
 
-
-
-// ── SESSION ──
-function saveSession(jobId, filename, fmt) {
-  sessionStorage.setItem(SESSION_KEY, JSON.stringify({ jobId, filename, fmt, ts: Date.now() }));
-}
-function clearSession() { sessionStorage.removeItem(SESSION_KEY); }
-
-window.addEventListener('DOMContentLoaded', async () => {
+// AFTER
+window.addEventListener('DOMContentLoaded', () => {
   highlightSelectedFormat();
-  const raw = sessionStorage.getItem(SESSION_KEY);
-  if (!raw) return;
-  let saved;
-  try { saved = JSON.parse(raw); } catch { clearSession(); return; }
-  if (Date.now() - saved.ts > 12 * 60 * 60 * 1000) { clearSession(); return; }
-  try {
-    const data = await fetch(`/active-job/${saved.jobId}/`).then(r => r.json());
-    if (data.error) { clearSession(); return; }
-    if (['converting','queued','paused'].includes(data.status)) {
-      reconnectFilename.textContent = saved.filename || data.input_name || saved.jobId;
-      reconnectBanner.classList.add('active');
-      reconnectBanner.addEventListener('click', () => reconnectToJob(saved, data));
-    } else if (data.status === 'done') {
-      reconnectToJob(saved, data);
-    } else { clearSession(); }
-  } catch { clearSession(); }
 });
 
-async function reconnectToJob(saved, data) {
-  reconnectBanner.classList.remove('active');
-  currentJobId = saved.jobId;
-  panelName.textContent = saved.filename || data.input_name || '—';
-  panelSize.textContent = '—';
-  convTag.textContent   = saved.fmt || data.output_format?.toUpperCase() || '—';
-  document.getElementById('completeBanner')?.classList.remove('active');
-  errorBox.classList.remove('active');
-  setStrategy(data.strategy || '');
-  statElapsed.textContent = 'Reconnected ↩';
-  isPaused = data.status === 'paused';
-  dropZone.style.display = 'none';
-  document.getElementById('settingsCard').style.display = '';
-  panel.classList.add('active');
-  if (data.status === 'done') {
-    setStatus('done', 100); showComplete(data.filename, data.file_size); clearSession();
-  } else if (data.status === 'paused') {
-    setStatus('paused', data.progress, 'Paused'); showConvertingActions(); updatePauseBtn(true); pollStatus();
-  } else {
-    setStatus(data.status, data.progress); showConvertingActions(); pollStatus();
-  }
-}
 
-function dismissReconnect(e) {
-  e.stopPropagation();
-  reconnectBanner.classList.remove('active');
-  clearSession();
-}
 
 // ── FORMAT SELECTION ──
 function setFormat(fmt) {
@@ -287,7 +234,7 @@ async function handleFile(file) {
   }
 
   if (!SUPPORTED.has(ext)) { alert(`Unsupported: ${ext} (${file.type})`); return; }
-  if (currentJobId) { clearInterval(pollTimer); clearInterval(elapsedTimer); fetch(`/cleanup/${currentJobId}/`, { method:'POST' }); clearSession(); }
+  if (currentJobId) { clearInterval(pollTimer); clearInterval(elapsedTimer); fetch(`/cleanup/${currentJobId}/`, { method:'POST' }); }
 
   pendingFile = file;
   originalFileSize = file.size;
@@ -478,7 +425,6 @@ xhr.onload = () => {
     }
     currentJobId = data.job_id;
     startTime = Date.now();
-    saveSession(currentJobId, file.name, `${inputExt} → ${fmt}`);
     elapsedTimer = setInterval(() => {
       if (!isPaused) statElapsed.textContent = `Elapsed: ${fmtElapsed(Date.now() - startTime)}`;
     }, 1000);
@@ -557,20 +503,19 @@ function pollStatus() {
         if (data.strategy) setStrategy(data.strategy);
         setStatSpeed(''); setStatEta('');
         statElapsed.textContent = startTime ? `Done in ${fmtElapsed(Date.now()-startTime)}` : '';
-        showComplete(data.filename, data.file_size); clearSession();
+        showComplete(data.filename, data.file_size);
       } else if (data.status === 'cancelled') {
         clearInterval(pollTimer); clearInterval(elapsedTimer);
         setStatus('cancelled', 0, 'Cancelled');
         setStrategy(''); clearStats();
         actions.innerHTML = `<button class="btn btn-ghost" onclick="convertAnother()">↩ Export another</button>`;
-        clearSession();
       } else if (data.status === 'error') {
         clearInterval(pollTimer); clearInterval(elapsedTimer);
-        showError(data.error || 'Export failed.'); clearSession();
+        showError(data.error || 'Export failed.');
       }
     } catch {
       clearInterval(pollTimer); clearInterval(elapsedTimer);
-      showError('Lost connection to server.'); clearSession();
+      showError('Lost connection to server.');
     }
   }, 800);
 }
@@ -606,7 +551,6 @@ async function cancelConversion() {
   setStatus('cancelled', 0, 'Cancelled');
   setStrategy(''); clearStats();
   actions.innerHTML = `<button class="btn btn-ghost" onclick="convertAnother()">↩ Export another</button>`;
-  clearSession();
 }
 
 function showComplete(filename, fileSize) {
@@ -899,7 +843,7 @@ function convertAnother() {
   document.getElementById('aiTeaser').style.display = '';
   document.getElementById('aiPanel').style.display = 'none';
   if (currentJobId) { fetch(`/cleanup/${currentJobId}/`, { method:'POST' }); currentJobId = null; }
-  clearInterval(pollTimer); clearInterval(elapsedTimer); clearSession();
+  clearInterval(pollTimer); clearInterval(elapsedTimer);
   panel.classList.remove('active');
   document.getElementById('completeBanner')?.classList.remove('active');
   dropZone.style.display = '';
@@ -926,6 +870,22 @@ function convertAnother() {
   document.getElementById('thumbPreview').classList.remove('active');
   document.getElementById('sizeCompare').classList.remove('active');
 }
+
+// ── UNLOAD GUARD ──
+function isJobActive() {
+  return currentJobId !== null &&
+    !['done', 'error', 'cancelled'].includes(
+      document.getElementById('statusLabel')?.className?.replace('status-label ', '') || ''
+    );
+}
+
+window.addEventListener('beforeunload', e => {
+  if (isJobActive()) {
+    e.preventDefault();
+    e.returnValue = 'Your export is still in progress. If you leave, your progress will be lost.';
+    return e.returnValue;
+  }
+});
 
 // ── HAMBURGER ──
 function toggleMenu() {
@@ -1230,7 +1190,6 @@ async function importFromDrive() {
     panelSize.textContent = data.file_size || '—';
     currentJobId = data.job_id;
     startTime = Date.now();
-    saveSession(currentJobId, data.filename || 'Drive file', outputFormat.value.toUpperCase());
     elapsedTimer = setInterval(() => {
       if (!isPaused) statElapsed.textContent = `Elapsed: ${fmtElapsed(Date.now() - startTime)}`;
     }, 1000);
@@ -1449,4 +1408,3 @@ function openExportModal() {
 function closeExportModal() {
   document.getElementById('exportCompleteModal').style.display = 'none';
 }
-
