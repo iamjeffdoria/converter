@@ -477,6 +477,7 @@ function setStatus(state, pct, labelOverride) {
   progressFill.className = 'progress-fill';
   if (state === 'queued')     progressFill.classList.add('indeterminate');
   if (state === 'converting') progressFill.classList.add('converting-fill');
+  if (state === 'uploading' || state === 'converting') document.querySelector('header').classList.add('nav-locked');
   if (state === 'paused')     progressFill.classList.add('paused');
   if (state === 'done')       progressFill.classList.add('done-fill');
   statusPct.style.color = state === 'done' ? 'var(--success)' : state === 'paused' ? 'var(--warning)' : '';
@@ -871,21 +872,26 @@ function convertAnother() {
   document.getElementById('sizeCompare').classList.remove('active');
 }
 
-// ── UNLOAD GUARD ──
-function isJobActive() {
-  return currentJobId !== null &&
-    !['done', 'error', 'cancelled'].includes(
-      document.getElementById('statusLabel')?.className?.replace('status-label ', '') || ''
-    );
+/**
+ * Custom logic to open feedback safely
+ */
+function openFeedbackSafely() {
+  if (!checkNavGuard()) return;
+  const modal = new bootstrap.Modal(document.getElementById('feedbackModal'));
+  modal.sh
 }
 
-window.addEventListener('beforeunload', e => {
-  if (isJobActive()) {
-    e.preventDefault();
-    e.returnValue = 'Your export is still in progress. If you leave, your progress will be lost.';
-    return e.returnValue;
-  }
-});
+// ── UNLOAD GUARD ──
+function isJobActive() {
+  if (!statusLabel) return false;
+  // Check classes for active state
+  const isUploading  = statusLabel.classList.contains('uploading');
+  const isConverting = statusLabel.classList.contains('converting');
+  const isPausedState = statusLabel.classList.contains('paused');
+  const isFrontendBusy = !!document.getElementById('captionProgressWrap');
+
+  return (isFrontendBusy || isUploading || isConverting || isPausedState);
+}
 
 // ── HAMBURGER ──
 function toggleMenu() {
@@ -1292,6 +1298,7 @@ document.getElementById('historyModal').addEventListener('click', function(e) {
 // ====================== LOGOUT CONFIRMATION ======================
 
 function confirmLogout() {
+  if (!checkNavGuard()) return;
   const modal = document.createElement('div');
   modal.id = 'logoutConfirmModal';
   modal.style.cssText = `

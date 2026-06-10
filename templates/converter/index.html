@@ -49,13 +49,13 @@
 
     {% if user.is_authenticated %}
         <a href="#" onclick="openHistoryModal(); return false;" class="nav-btn nav-btn-ghost"><i class="bi bi-clock-history"></i> History</a>
-       <button class="nav-btn nav-btn-ghost feedback-btn" data-bs-toggle="modal" data-bs-target="#feedbackModal">
+       <button class="nav-btn nav-btn-ghost feedback-btn" onclick="openFeedbackSafely()">
           <i class="bi bi-chat-dots"></i> Feedback
       </button>
         <a href="#" onclick="confirmLogout(); return false;" class="nav-btn nav-btn-danger">Sign Out</a>
       {% else %}
         <a href="/login/"    class="nav-btn nav-btn-ghost">Sign In</a>
-       <button class="nav-btn nav-btn-ghost feedback-btn" data-bs-toggle="modal" data-bs-target="#feedbackModal">
+       <button class="nav-btn nav-btn-ghost feedback-btn" onclick="openFeedbackSafely()">
           <i class="bi bi-chat-dots"></i> Feedback
       </button>
         <a href="/register/" class="nav-btn nav-btn-solid">Register</a>
@@ -77,20 +77,14 @@
           {% elif free_remaining > 0 %}
             <div class="mobile-credits credit-badge free" style="border:1px solid var(--border-mid);text-align:center">{{ free_remaining }} exports left</div>
           {% endif %}
-          <a href="/pricing/" class="pricing-link" style="display:flex">
-            <span class="pulse-dot"></span>Credits & Pricing
-          </a>
           <a href="#" onclick="openHistoryModal(); return false;" class="nav-btn nav-btn-ghost" style="display:block;text-align:center">
             <i class="bi bi-clock-history"></i> History
           </a>
-          <button class="nav-btn nav-btn-ghost feedback-btn" data-bs-toggle="modal" data-bs-target="#feedbackModal" style="display:block;text-align:center;width:100%;">
+          <button class="nav-btn nav-btn-ghost feedback-btn" onclick="openFeedbackSafely()" style="display:block;text-align:center;width:100%;">
             <i class="bi bi-chat-dots"></i> Feedback
           </button>
           <a href="#" onclick="confirmLogout(); return false;" class="nav-btn nav-btn-danger" style="display:block;text-align:center">Sign Out</a>
         {% else %}
-          <a href="/pricing/" class="pricing-link" style="display:flex">
-            <span class="pulse-dot"></span>Credits & Pricing
-          </a>
           <a href="/login/"    class="nav-btn nav-btn-ghost" style="display:block;text-align:center">Sign In</a>
           <a href="/register/" class="nav-btn nav-btn-solid" style="display:block;text-align:center">Register Free</a>
         {% endif %}
